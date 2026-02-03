@@ -1,0 +1,38 @@
+# Docker Compose file for pulling from GitHub Container Registry
+# Replace YOUR_USERNAME with your GitHub username
+#
+# Usage:
+#   docker-compose -f docker-compose.ghcr.yml up -d
+
+version: '3.8'
+
+services:
+  zolta:
+    # Pull from GitHub Container Registry
+    # Replace YOUR_USERNAME with your GitHub username
+    image: ghcr.io/miranoverhoef/zolta:latest
+    container_name: zolta
+    ports:
+      - "5000:5000"
+    environment:
+      # IMPORTANT: Change these in production!
+      - SECRET_KEY=change-this-to-a-secure-random-string-in-production
+      - ADMIN_PASSWORD=admin123
+      - DEBUG=false
+    volumes:
+      # Persist database and uploads
+      - zolta_data:/app/instance
+      - zolta_uploads:/app/static/uploads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  zolta_data:
+    name: zolta_data
+  zolta_uploads:
+    name: zolta_uploads

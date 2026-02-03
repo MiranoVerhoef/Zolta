@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Auctions - Zolta{% endblock %}
+
+{% block content %}
+<div class="container">
+    <section class="hero">
+        <h1>Internal Equipment Auctions</h1>
+        <p>Bid on surplus computers, monitors, and other equipment. All proceeds support our organization.</p>
+    </section>
+
+    {% if active_auctions %}
+    <section class="section">
+        <h2 class="section-title">🔥 Live Auctions</h2>
+        <div class="auctions-grid">
+            {% for auction in active_auctions %}
+            <a href="{{ url_for('auction_detail', auction_id=auction.id) }}" class="auction-card">
+                {% if auction.image_filename %}
+                <img src="{{ url_for('static', filename='uploads/' + auction.image_filename) }}" 
+                     alt="{{ auction.title }}" class="auction-card-image">
+                {% else %}
+                <div class="auction-card-image placeholder">📦</div>
+                {% endif %}
+                <div class="auction-card-body">
+                    <h3 class="auction-card-title">{{ auction.title }}</h3>
+                    <p class="auction-card-description">{{ auction.description[:100] }}{% if auction.description|length > 100 %}...{% endif %}</p>
+                    <div class="auction-card-price">€{{ "%.2f"|format(auction.current_price) }}</div>
+                    <div class="auction-card-meta">
+                        <span class="auction-status active">Live</span>
+                        <span>{{ auction.bids|length }} bids</span>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if upcoming_auctions %}
+    <section class="section">
+        <h2 class="section-title">⏰ Upcoming Auctions</h2>
+        <div class="auctions-grid">
+            {% for auction in upcoming_auctions %}
+            <a href="{{ url_for('auction_detail', auction_id=auction.id) }}" class="auction-card">
+                {% if auction.image_filename %}
+                <img src="{{ url_for('static', filename='uploads/' + auction.image_filename) }}" 
+                     alt="{{ auction.title }}" class="auction-card-image">
+                {% else %}
+                <div class="auction-card-image placeholder">📦</div>
+                {% endif %}
+                <div class="auction-card-body">
+                    <h3 class="auction-card-title">{{ auction.title }}</h3>
+                    <p class="auction-card-description">{{ auction.description[:100] }}{% if auction.description|length > 100 %}...{% endif %}</p>
+                    <div class="auction-card-price">Starting at €{{ "%.2f"|format(auction.min_price) }}</div>
+                    <div class="auction-card-meta">
+                        <span class="auction-status upcoming">Starts {{ auction.start_date.strftime('%b %d') }}</span>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if ended_auctions %}
+    <section class="section">
+        <h2 class="section-title">✅ Recently Ended</h2>
+        <div class="auctions-grid">
+            {% for auction in ended_auctions %}
+            <a href="{{ url_for('auction_detail', auction_id=auction.id) }}" class="auction-card">
+                {% if auction.image_filename %}
+                <img src="{{ url_for('static', filename='uploads/' + auction.image_filename) }}" 
+                     alt="{{ auction.title }}" class="auction-card-image">
+                {% else %}
+                <div class="auction-card-image placeholder">📦</div>
+                {% endif %}
+                <div class="auction-card-body">
+                    <h3 class="auction-card-title">{{ auction.title }}</h3>
+                    <p class="auction-card-description">{{ auction.description[:100] }}{% if auction.description|length > 100 %}...{% endif %}</p>
+                    <div class="auction-card-price">Sold for €{{ "%.2f"|format(auction.current_price) }}</div>
+                    <div class="auction-card-meta">
+                        <span class="auction-status ended">Ended</span>
+                        <span>{{ auction.bids|length }} bids</span>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if not active_auctions and not upcoming_auctions and not ended_auctions %}
+    <div class="empty-state">
+        <div class="empty-state-icon">🔨</div>
+        <h2>No Auctions Yet</h2>
+        <p>Check back soon for upcoming auctions!</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

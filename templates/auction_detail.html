@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}{{ auction.title }} - Zolta{% endblock %}
+
+{% block content %}
+<div class="container auction-detail">
+    <a href="{{ url_for('index') }}" class="btn btn-secondary mb-2">← Back to Auctions</a>
+    
+    <div class="auction-detail-grid" data-auction-id="{{ auction.id }}">
+        <div>
+            {% if auction.image_filename %}
+            <img src="{{ url_for('static', filename='uploads/' + auction.image_filename) }}" 
+                 alt="{{ auction.title }}" class="auction-main-image">
+            {% else %}
+            <div class="auction-main-image" style="display: flex; align-items: center; justify-content: center; font-size: 6rem; min-height: 300px;">📦</div>
+            {% endif %}
+            
+            <div class="mt-2">
+                <h2>Description</h2>
+                <p class="auction-description">{{ auction.description }}</p>
+            </div>
+            
+            {% if bids %}
+            <div class="bid-history mt-2">
+                <h3>Bid History (Top 10)</h3>
+                <ul class="bid-list">
+                    {% for bid in bids %}
+                    <li class="bid-item {% if loop.first %}winning{% endif %}">
+                        <div class="bidder-info">
+                            <span class="bidder-name">{{ bid.bidder_name }}</span>
+                            <span class="bid-time">{{ bid.created_at.strftime('%b %d, %Y at %H:%M') }}</span>
+                        </div>
+                        <span class="bid-amount">€{{ "%.2f"|format(bid.amount) }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="auction-info">
+            <span class="auction-status {{ auction.status }}">
+                {% if auction.status == 'active' %}Live Now
+                {% elif auction.status == 'upcoming' %}Starting Soon
+                {% else %}Ended
+                {% endif %}
+            </span>
+            
+            <h1 class="auction-title mt-1">{{ auction.title }}</h1>
+            
+            <div class="price-display">
+                <div class="price-label">
+                    {% if auction.status == 'ended' %}Final Price
+                    {% elif auction.bids|length > 0 %}Current Bid
+                    {% else %}Starting Price
+                    {% endif %}
+                </div>
+                <div class="price-value" id="current-price">€{{ "%.2f"|format(auction.current_price) }}</div>
+                <div style="font-size: 0.875rem; opacity: 0.9; margin-top: 0.5rem;">
+                    <span id="bid-count">{{ auction.bids|length }}</span> bid{% if auction.bids|length != 1 %}s{% endif %}
+                </div>
+            </div>
+            
+            {% if auction.status == 'active' %}
+            <div class="countdown" data-countdown="{{ auction.end_date.isoformat() }}">
+                Loading...
+            </div>
+            {% elif auction.status == 'upcoming' %}
+            <div class="alert alert-info mt-2">
+                Auction starts: <strong>{{ auction.start_date.strftime('%B %d, %Y at %H:%M') }}</strong>
+            </div>
+            {% endif %}
+            
+            <div class="auction-meta-grid">
+                <div class="meta-item">
+                    <div class="meta-label">Min Bid Increment</div>
+                    <div class="meta-value">€{{ "%.2f"|format(auction.min_bid_increment) }}</div>
+                </div>
+                {% if auction.max_bid_increment %}
+                <div class="meta-item">
+                    <div class="meta-label">Max Bid Increment</div>
+                    <div class="meta-value">€{{ "%.2f"|format(auction.max_bid_increment) }}</div>
+                </div>
+                {% endif %}
+                <div class="meta-item">
+                    <div class="meta-label">Start Date</div>
+                    <div class="meta-value">{{ auction.start_date.strftime('%b %d, %H:%M') }}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">End Date</div>
+                    <div class="meta-value">{{ auction.end_date.strftime('%b %d, %H:%M') }}</div>
+                </div>
+            </div>
+            
+            {% if auction.max_price %}
+            <div class="alert alert-info">
+                Maximum price: <strong>€{{ "%.2f"|format(auction.max_price) }}</strong>
+            </div>
+            {% endif %}
+            
+            {% if auction.whitelisted_domains and auction.show_allowed_domains %}
+            <div class="alert alert-info">
+                This auction is restricted to email addresses ending with: <strong>{{ auction.whitelisted_domains }}</strong>
+            </div>
+            {% elif auction.whitelisted_domains and not auction.show_allowed_domains %}
+            <div class="alert alert-info">
+                This auction is restricted to specific email domains.
+            </div>
+            {% endif %}
+            
+            {% if auction.status == 'active' %}
+            <div class="bid-form">
+                <h3>Place Your Bid</h3>
+                <div id="message-container"></div>
+                
+                <form id="bid-form" data-auction-id="{{ auction.id }}">
+                    <div class="form-group">
+                        <label class="form-label" for="name">Your Name</label>
+                        <input type="text" id="name" name="name" class="form-input" 
+                               value="{{ saved_name }}" required placeholder="John Doe">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email Address</label>
+                        <input type="email" id="email" name="email" class="form-input" 
+                               value="{{ saved_email }}" required placeholder="john@company.com">
+                        {% if auction.whitelisted_domains and auction.show_allowed_domains %}
+                        <span class="form-hint">Must end with: {{ auction.whitelisted_domains }}</span>
+                        {% elif auction.whitelisted_domains and not auction.show_allowed_domains %}
+                        <span class="form-hint">Only authorized email domains are accepted</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="amount">Bid Amount (€)</label>
+                        {% set min_bid = auction.current_price + auction.min_bid_increment %}
+                        <input type="number" id="amount" name="amount" class="form-input" 
+                               min="{{ '%.2f'|format(min_bid) }}" 
+                               step="0.01" 
+                               value="{{ '%.2f'|format(min_bid) }}"
+                               data-min-increment="{{ auction.min_bid_increment }}"
+                               required>
+                        <span class="form-hint">Minimum bid: €{{ "%.2f"|format(min_bid) }}</span>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-block">
+                        Place Bid
+                    </button>
+                </form>
+            </div>
+            {% elif auction.status == 'ended' %}
+            <div class="alert alert-info mt-2">
+                <strong>Auction Ended</strong><br>
+                {% if auction.highest_bidder %}
+                Winner: {{ auction.highest_bidder.bidder_name }} with €{{ "%.2f"|format(auction.highest_bidder.amount) }}
+                {% else %}
+                No bids were placed.
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

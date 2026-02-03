@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}{% if auction %}Edit{% else %}Create{% endif %} Auction - Admin{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+    <aside class="admin-sidebar">
+        <div class="logo">
+            <span class="logo-icon">⚡</span>
+            Zolta Admin
+        </div>
+        <ul class="admin-nav">
+            <li><a href="{{ url_for('admin_dashboard') }}">📊 Dashboard</a></li>
+            <li><a href="{{ url_for('admin_new_auction') }}" {% if not auction %}class="active"{% endif %}>➕ New Auction</a></li>
+            <li><a href="{{ url_for('admin_settings') }}">⚙️ Settings</a></li>
+            <li><a href="{{ url_for('index') }}">🌐 View Site</a></li>
+            <li><a href="{{ url_for('admin_logout') }}">🚪 Logout</a></li>
+        </ul>
+    </aside>
+    
+    <main class="admin-main">
+        <div class="admin-header">
+            <h1>{% if auction %}Edit Auction{% else %}Create New Auction{% endif %}</h1>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">← Back</a>
+        </div>
+        
+        <form class="admin-form" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label class="form-label" for="title">Title *</label>
+                <input type="text" id="title" name="title" class="form-input" required
+                       value="{{ auction.title if auction else '' }}"
+                       placeholder="Dell OptiPlex 7090 Desktop Computer">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="description">Description *</label>
+                <textarea id="description" name="description" class="form-input form-textarea" required
+                          placeholder="Include details like specifications, condition, accessories included, etc.">{{ auction.description if auction else '' }}</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="image">Image</label>
+                <input type="file" id="image" name="image" class="form-input" accept="image/*">
+                <span class="form-hint">Accepted formats: PNG, JPG, JPEG, GIF, WebP. Max 16MB.</span>
+                {% if auction and auction.image_filename %}
+                <img src="{{ url_for('static', filename='uploads/' + auction.image_filename) }}" 
+                     class="current-image" id="image-preview" alt="Current image">
+                {% else %}
+                <img src="" class="current-image" id="image-preview" alt="Preview" style="display: none;">
+                {% endif %}
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="min_price">Starting Price (€) *</label>
+                    <input type="number" id="min_price" name="min_price" class="form-input" 
+                           step="0.01" min="0" required
+                           value="{{ auction.min_price if auction else '' }}"
+                           placeholder="50.00">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="max_price">Maximum Price (€)</label>
+                    <input type="number" id="max_price" name="max_price" class="form-input" 
+                           step="0.01" min="0"
+                           value="{{ auction.max_price if auction and auction.max_price else '' }}"
+                           placeholder="Leave empty for no limit">
+                    <span class="form-hint">Optional: Set a ceiling price</span>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="min_bid_increment">Minimum Bid Increment (€) *</label>
+                    <input type="number" id="min_bid_increment" name="min_bid_increment" class="form-input" 
+                           step="0.01" min="0.01" required
+                           value="{{ auction.min_bid_increment if auction else '5.00' }}"
+                           placeholder="5.00">
+                    <span class="form-hint">Minimum amount above current price for new bids</span>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="max_bid_increment">Maximum Bid Increment (€)</label>
+                    <input type="number" id="max_bid_increment" name="max_bid_increment" class="form-input" 
+                           step="0.01" min="0"
+                           value="{{ auction.max_bid_increment if auction and auction.max_bid_increment else '' }}"
+                           placeholder="Leave empty for no limit">
+                    <span class="form-hint">Optional: Maximum amount above current price</span>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="start_date">Start Date & Time *</label>
+                    <input type="datetime-local" id="start_date" name="start_date" class="form-input" required
+                           value="{{ auction.start_date.strftime('%Y-%m-%dT%H:%M') if auction else '' }}">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="end_date">End Date & Time *</label>
+                    <input type="datetime-local" id="end_date" name="end_date" class="form-input" required
+                           value="{{ auction.end_date.strftime('%Y-%m-%dT%H:%M') if auction else '' }}">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="whitelisted_domains">Whitelisted Email Domains</label>
+                <input type="text" id="whitelisted_domains" name="whitelisted_domains" class="form-input"
+                       value="{{ auction.whitelisted_domains if auction and auction.whitelisted_domains else '' }}"
+                       placeholder="company.com, partner.org">
+                <span class="form-hint">Comma-separated list of allowed email domains. Leave empty to allow all.</span>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-checkbox">
+                    <input type="checkbox" name="show_allowed_domains" 
+                           {% if not auction or auction.show_allowed_domains %}checked{% endif %}>
+                    <span>Show allowed domains to bidders</span>
+                </label>
+                <span class="form-hint">When enabled, bidders will see which email domains are allowed. Disable to hide this information.</span>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-checkbox">
+                        <input type="checkbox" name="require_email_confirmation" 
+                               {% if not auction or auction.require_email_confirmation %}checked{% endif %}>
+                        <span>Require email confirmation for bids</span>
+                    </label>
+                </div>
+                
+                {% if auction %}
+                <div class="form-group">
+                    <label class="form-checkbox">
+                        <input type="checkbox" name="is_active" 
+                               {% if auction.is_active %}checked{% endif %}>
+                        <span>Auction is active</span>
+                    </label>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button type="submit" class="btn btn-primary">
+                    {% if auction %}Update Auction{% else %}Create Auction{% endif %}
+                </button>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </main>
+</div>
+{% endblock %}

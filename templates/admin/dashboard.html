@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Auction System{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+    <aside class="admin-sidebar">
+        <div class="logo">
+            <span class="logo-icon">⚡</span>
+            Zolta Admin
+        </div>
+        <ul class="admin-nav">
+            <li><a href="{{ url_for('admin_dashboard') }}" class="active">📊 Dashboard</a></li>
+            <li><a href="{{ url_for('admin_new_auction') }}">➕ New Auction</a></li>
+            <li><a href="{{ url_for('admin_settings') }}">⚙️ Settings</a></li>
+            <li><a href="{{ url_for('index') }}">🌐 View Site</a></li>
+            <li><a href="{{ url_for('admin_logout') }}">🚪 Logout</a></li>
+        </ul>
+    </aside>
+    
+    <main class="admin-main">
+        <div class="admin-header">
+            <h1>Auctions</h1>
+            <a href="{{ url_for('admin_new_auction') }}" class="btn btn-primary">+ Create Auction</a>
+        </div>
+        
+        {% if auctions %}
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Image</th>
+                        <th>Title</th>
+                        <th>Current Price</th>
+                        <th>Bids</th>
+                        <th>Status</th>
+                        <th>Dates</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for auction in auctions %}
+                    <tr>
+                        <td>
+                            {% if auction.image_filename %}
+                            <img src="{{ url_for('static', filename='uploads/' + auction.image_filename) }}" 
+                                 alt="{{ auction.title }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
+                            {% else %}
+                            <div style="width: 60px; height: 60px; background: var(--background); border-radius: 8px; display: flex; align-items: center; justify-content: center;">📦</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>{{ auction.title }}</strong>
+                            <br>
+                            <small style="color: var(--text-secondary);">{{ auction.description[:50] }}{% if auction.description|length > 50 %}...{% endif %}</small>
+                        </td>
+                        <td><strong>€{{ "%.2f"|format(auction.current_price) }}</strong></td>
+                        <td>{{ auction.bids|length }}</td>
+                        <td>
+                            <span class="auction-status {{ auction.status }}">
+                                {% if auction.status == 'active' %}Live
+                                {% elif auction.status == 'upcoming' %}Upcoming
+                                {% elif auction.status == 'inactive' %}Inactive
+                                {% else %}Ended
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            <small>
+                                Start: {{ auction.start_date.strftime('%b %d, %H:%M') }}<br>
+                                End: {{ auction.end_date.strftime('%b %d, %H:%M') }}
+                            </small>
+                        </td>
+                        <td class="table-actions">
+                            <a href="{{ url_for('auction_detail', auction_id=auction.id) }}" class="btn btn-secondary btn-sm" title="View">👁️</a>
+                            <a href="{{ url_for('admin_auction_bids', auction_id=auction.id) }}" class="btn btn-secondary btn-sm" title="View Bids">📋</a>
+                            <a href="{{ url_for('admin_edit_auction', auction_id=auction.id) }}" class="btn btn-secondary btn-sm" title="Edit">✏️</a>
+                            <form action="{{ url_for('admin_delete_auction', auction_id=auction.id) }}" method="POST" style="display: inline;" 
+                                  onsubmit="return confirm('Are you sure you want to delete this auction? This cannot be undone.');">
+                                <button type="submit" class="btn btn-danger btn-sm" title="Delete">🗑️</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">⚡</div>
+            <h2>No Auctions Yet</h2>
+            <p>Create your first auction to get started.</p>
+            <a href="{{ url_for('admin_new_auction') }}" class="btn btn-primary mt-2">Create Auction</a>
+        </div>
+        {% endif %}
+    </main>
+</div>
+{% endblock %}
