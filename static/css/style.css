@@ -437,8 +437,20 @@ a:hover {
 }
 
 .btn-primary {
-    background: transparent;
-    color: white;
+    background: var(--primary-color);
+    color: #fff;
+    border: 1px solid var(--primary-color);
+}
+
+.btn-primary:hover {
+    filter: brightness(0.95);
+    color: #fff;
+}
+
+.btn-primary:disabled,
+.btn-primary.disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
 }
 
 .btn-primary:hover {

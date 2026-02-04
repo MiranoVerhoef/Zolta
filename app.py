@@ -8,6 +8,7 @@ import os
 import signal
 import sys
 import uuid
+import sqlite3
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -49,6 +50,10 @@ class Auction(db.Model):
     require_email_confirmation = db.Column(db.Boolean, default=True)
     whitelisted_domains = db.Column(db.Text, nullable=True)  # Comma-separated
     show_allowed_domains = db.Column(db.Boolean, default=True)  # Show domains to users
+    # Notification options
+    notify_winner = db.Column(db.Boolean, default=True)
+    ending_soon_notified_at = db.Column(db.DateTime, nullable=True)
+    ended_notified_at = db.Column(db.DateTime, nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     bids = db.relationship('Bid', backref='auction', lazy=True, cascade='all, delete-orphan')
@@ -251,6 +256,107 @@ def send_email(to_email, subject, html_body, text_body=None):
         return True, "Email sent successfully"
     except Exception as e:
         return False, str(e)
+
+def _unique_bidder_emails(auction_id: int):
+    bids = Bid.query.filter_by(auction_id=auction_id).all()
+    return sorted({b.bidder_email.strip().lower() for b in bids if b.bidder_email})
+
+def check_and_send_auction_notifications():
+    """Send:
+    - 'Ending soon' emails 30 minutes before end (once)
+    - 'Ended' emails right after end (once), optionally including winner
+    """
+    now = datetime.now()
+    soon_threshold = now + timedelta(minutes=30)
+
+    # Ending soon (only once)
+    soon_auctions = Auction.query.filter(
+        Auction.is_active == True,
+        Auction.end_date > now,
+        Auction.end_date <= soon_threshold,
+        Auction.ending_soon_notified_at.is_(None)
+    ).all()
+
+    for auction in soon_auctions:
+        emails = _unique_bidder_emails(auction.id)
+        # Mark as processed even if no bidders (prevents repeated checks)
+        auction.ending_soon_notified_at = now
+        db.session.commit()
+
+        if not emails:
+            continue
+
+        subject = f"Auction ending soon: {auction.title}"
+        end_str = auction.end_date.strftime('%Y-%m-%d %H:%M')
+        current = auction.current_price
+        link = f"{site_url}/auction/{auction.id}" if site_url else ""
+        link_line = f'<p>You can view the auction here: <a href="{link}">{link}</a></p>' if link else ""
+        body = f"""<p>Your auction is ending soon.</p>
+        <p><strong>{auction.title}</strong></p>
+        <p>Ends at: <strong>{end_str}</strong></p>
+        <p>Current price: <strong>€{current:.2f}</strong></p>
+        {link_line}
+        """
+        for email in emails:
+            send_email(email, subject, body, text_body=None)
+
+    # Ended (only once)
+    ended_auctions = Auction.query.filter(
+        Auction.is_active == True,
+        Auction.end_date <= now,
+        Auction.ended_notified_at.is_(None)
+    ).all()
+
+    for auction in ended_auctions:
+        emails = _unique_bidder_emails(auction.id)
+
+        # Determine winner
+        highest = Bid.query.filter_by(auction_id=auction.id).order_by(Bid.amount.desc()).first()
+        winner_block = ""
+        if auction.notify_winner and highest:
+            winner_block = f"""<p><strong>Winner:</strong> {highest.bidder_name} ({highest.bidder_email})</p>
+            <p><strong>Winning bid:</strong> €{highest.amount:.2f}</p>"""
+
+        subject = f"Auction ended: {auction.title}"
+        end_str = auction.end_date.strftime('%Y-%m-%d %H:%M')
+        link = f"{site_url}/auction/{auction.id}" if site_url else ""
+        link_line = f'<p>View details: <a href="{link}">{link}</a></p>' if link else ""
+        body = f"""<p>The auction has ended.</p>
+        <p><strong>{auction.title}</strong></p>
+        <p>Ended at: <strong>{end_str}</strong></p>
+        {winner_block}
+        {link_line}
+        """
+
+        for email in emails:
+            send_email(email, subject, body, text_body=None)
+
+        auction.ended_notified_at = now
+        db.session.commit()
+
+def start_notification_scheduler():
+    if os.environ.get('ENABLE_NOTIFICATIONS', 'true').lower() != 'true':
+        return
+    try:
+        from apscheduler.schedulers.background import BackgroundScheduler
+    except Exception as e:
+        print(f"APScheduler not available: {e}")
+        return
+
+    scheduler = BackgroundScheduler(daemon=True)
+    def _job():
+        with app.app_context():
+            # request context needed for url_root; build without it
+            # so generate links from SITE_URL setting if present
+            try:
+                # Monkey patch request-less context
+                check_and_send_auction_notifications()
+            except Exception as e:
+                print(f"Notification job error: {e}")
+
+    scheduler.add_job(_job, 'interval', seconds=60, id='auction_notifications', replace_existing=True)
+    scheduler.start()
+    print("Auction notification scheduler started")
 
 # Public Routes
 @app.route('/')
@@ -557,6 +663,7 @@ def admin_new_auction():
             require_email_confirmation=request.form.get('require_email_confirmation') == 'on',
             whitelisted_domains=request.form.get('whitelisted_domains', '').strip() or None,
             show_allowed_domains=request.form.get('show_allowed_domains') == 'on',
+            notify_winner=request.form.get('notify_winner') == 'on',
             is_active=True
         )
         
@@ -600,6 +707,7 @@ def admin_edit_auction(auction_id):
         auction.require_email_confirmation = request.form.get('require_email_confirmation') == 'on'
         auction.whitelisted_domains = request.form.get('whitelisted_domains', '').strip() or None
         auction.show_allowed_domains = request.form.get('show_allowed_domains') == 'on'
+        auction.notify_winner = request.form.get('notify_winner') == 'on'
         auction.is_active = request.form.get('is_active') == 'on'
         
         db.session.commit()
@@ -685,6 +793,30 @@ def admin_test_email():
     return redirect(url_for('admin_settings'))
 
 # Initialize database and create default admin
+def ensure_sqlite_columns():
+    """Best-effort lightweight migrations for SQLite when using create_all()."""
+    try:
+        db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+        if not db_uri.startswith('sqlite:////'):
+            return
+        db_path = db_uri.replace('sqlite:////', '')
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        cur.execute("PRAGMA table_info(auction)")
+        cols = {row[1] for row in cur.fetchall()}
+        # Add missing columns (SQLite supports ADD COLUMN)
+        if 'notify_winner' not in cols:
+            cur.execute("ALTER TABLE auction ADD COLUMN notify_winner BOOLEAN DEFAULT 1")
+        if 'ending_soon_notified_at' not in cols:
+            cur.execute("ALTER TABLE auction ADD COLUMN ending_soon_notified_at DATETIME")
+        if 'ended_notified_at' not in cols:
+            cur.execute("ALTER TABLE auction ADD COLUMN ended_notified_at DATETIME")
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"SQLite migration skipped/failed: {e}")
+
 def init_db():
     with app.app_context():
         db.create_all()
@@ -706,6 +838,18 @@ def init_db():
             db.session.commit()
             print(f"Created default admin user: admin / {default_password}")
 
+
+# Auto-init DB and start notification scheduler when running under a WSGI server (gunicorn)
+if os.environ.get('AUTO_INIT', 'true').lower() == 'true':
+    try:
+        init_db()
+    except Exception as e:
+        print(f"DB init failed: {e}")
+    try:
+        start_notification_scheduler()
+    except Exception as e:
+        print(f"Scheduler start failed: {e}")
+
 if __name__ == '__main__':
     def _graceful_exit(signum, frame):
         print('Shutting down...')
@@ -714,6 +858,7 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, _graceful_exit)
 
     init_db()
+    start_notification_scheduler()
     app.run(
     host="0.0.0.0",
     port=5000,

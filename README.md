@@ -251,3 +251,26 @@ MIT License - Feel free to use and modify for your organization.
 <p align="center">
   <strong>⚡ Zolta</strong> - Auction platform made simple
 </p>
+
+
+## Persistent data (important)
+
+Zolta stores data in two paths inside the container:
+
+- **Database:** `/app/instance/auctions.db`
+- **Uploaded images:** `/app/static/uploads/`
+
+When using Docker/Compose, make sure both paths are mounted to persistent storage so upgrades don’t wipe your data.
+
+The provided `docker-compose.yml` already mounts:
+- `zolta_data:/app/instance`
+- `zolta_uploads:/app/static/uploads`
+
+If you prefer bind mounts instead of named volumes:
+
+```yaml
+volumes:
+  - ./instance:/app/instance
+  - ./uploads:/app/static/uploads
+```
+

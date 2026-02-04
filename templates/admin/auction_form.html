@@ -152,6 +152,16 @@ function setToday(inputId) {
                     </label>
                 </div>
                 
+
+                <div class="form-group">
+                    <label class="form-checkbox">
+                        <input type="checkbox" name="notify_winner"
+                               {% if not auction or auction.notify_winner %}checked{% endif %}>
+                        <span>Include winner in "auction ended" email</span>
+                    </label>
+                    <span class="form-help">If disabled, bidders will still be notified that the auction ended, but without winner details.</span>
+                </div>
+    
                 {% if auction %}
                 <div class="form-group">
                     <label class="form-checkbox">
