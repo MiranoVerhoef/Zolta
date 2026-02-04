@@ -1037,17 +1037,23 @@ body {
 .auction-media-card {
   background: var(--surface);
   border-radius: var(--radius-xl);
-  padding: 16px;
+  padding: 0;
   border: none;
   box-shadow: none;
+  overflow: hidden; /* ensures no square corners */
 }
 
 
 .auction-media-card .auction-main-image{
+  width: 100%;
+  max-height: 520px;
+  object-fit: contain;
   background: transparent;
   box-shadow: none;
-  border-radius: var(--radius-lg);
+  border-radius: 0;
+  display: block;
 }
+
 
 
 /* Simple fade transitions for navigation (non-ViewTransition browsers) */

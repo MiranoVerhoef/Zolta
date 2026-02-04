@@ -16,7 +16,7 @@
             <img src="{{ url_for('static', filename='uploads/' + auction.image_filename) }}" 
                  alt="{{ auction.title }}" class="auction-main-image">
             {% else %}
-            <div class="auction-main-image" style="display: flex; align-items: center; justify-content: center; font-size: 6rem; min-height: 300px;">📦</div>
+            <div class="auction-main-image" style="display: flex; align-items: center; justify-content: center; font-size: 1rem; min-height: 300px; color: var(--text-secondary);">No image</div>
             {% endif %}
         </div>
             
