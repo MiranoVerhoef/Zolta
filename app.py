@@ -11,7 +11,7 @@ from threading import Lock
 
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION', '1.2.7')
+APP_VERSION = os.environ.get('APP_VERSION', '1.2.8')
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
 
 def load_config_file():
@@ -71,6 +71,29 @@ db = SQLAlchemy(app)
 # --- Server-Sent Events pub/sub for realtime bid updates (single-process) ---
 _AUCTION_SUBS_LOCK = Lock()
 _AUCTION_SUBS: dict[int, list[Queue]] = {}
+
+def _build_auction_snapshot(auction_id: int) -> dict:
+    auction = Auction.query.get(int(auction_id))
+    if not auction:
+        return {'auction_id': int(auction_id)}
+    bids = Bid.query.filter_by(auction_id=auction.id).order_by(Bid.created_at.desc()).limit(10).all()
+    highest = auction.highest_bidder
+    return {
+        'auction_id': auction.id,
+        'status': auction.status,
+        'current_price': float(auction.current_price),
+        'bid_count': Bid.query.filter_by(auction_id=auction.id).count(),
+        'winner_name': highest.bidder_name if highest else None,
+        'winner_amount': float(highest.amount) if highest else None,
+        'notify_winner': bool(getattr(auction, 'notify_winner', False)),
+        'bids': [
+            {
+                'name': b.bidder_name,
+                'amount': float(b.amount),
+                'created_at': b.created_at.isoformat()
+            } for b in bids
+        ][::-1]
+    }
 
 def _publish_auction_event(auction_id: int, payload: dict):
     with _AUCTION_SUBS_LOCK:
@@ -295,6 +318,12 @@ TRANSLATIONS = {
         'email_address': 'E-mailadres',
         'bid_amount': 'Bedrag (€)',
         'place_bid': 'Bod plaatsen',
+        'terms_label': 'Wanneer je een bod plaatst moet je akkoord gaan met de voorwaarden',
+        'terms_text': 'De website is niet verantwoordelijk voor iets dat te maken heeft met de veiling of de geveilde goederen.',
+        'view_terms': 'Bekijk voorwaarden',
+        'close': 'Sluiten',
+        'winner': 'Winnaar',
+        'you_won': 'Je hebt gewonnen!',
         'verification_email_sent': 'Check je e-mail om je bod te bevestigen. Daarna hoef je 7 dagen niet opnieuw te verifiëren.',
         'homepage_title': 'Zolta Veilingen',
         'live_auctions': 'Live veilingen',
@@ -684,7 +713,7 @@ Bid amount: €{amount:.2f}
     )
     db.session.add(bid)
     db.session.commit()
-    _publish_auction_event(auction_id, {'type': 'bid'})
+    _publish_auction_event(auction_id, {'type': 'snapshot', 'data': _build_auction_snapshot(auction_id)})
     
     response = jsonify({
         'success': True, 
@@ -786,7 +815,11 @@ def auction_stream(auction_id):
                 if q in lst:
                     lst.remove(q)
 
-    return Response(stream_with_context(gen()), mimetype='text/event-stream')
+    resp = Response(stream_with_context(gen()), mimetype='text/event-stream')
+    resp.headers['Cache-Control'] = 'no-cache'
+    resp.headers['X-Accel-Buffering'] = 'no'
+    resp.headers['Connection'] = 'keep-alive'
+    return resp
 
 @app.route('/api/auction/<int:auction_id>/status')
 def auction_status(auction_id):

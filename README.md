@@ -1,6 +1,6 @@
 # Zolta
 
-**Version: 1.2.4
+**Version: 1.2.8
 
 A sleek, modern auction platform for internal equipment sales. Perfect for organizations looking to auction off surplus computers, monitors, and other equipment.
 

@@ -43,18 +43,6 @@
         
         <div class="auction-info">
             <span class="auction-status {{ auction.status }}">
-                
-            {% if auction.status == 'ended' and auction.highest_bidder and auction.notify_winner %}
-            <div class="winner-celebration" id="winner-celebration">
-                <div class="winner-card">
-                    <div class="winner-title">Winner</div>
-                    <div class="winner-name">{{ auction.highest_bidder.bidder_name }}</div>
-                    <div class="winner-amount">€{{ '%.2f'|format(auction.highest_bidder.amount) }}</div>
-                </div>
-                <div class="confetti" aria-hidden="true"></div>
-            </div>
-            {% endif %}
-
 {% if auction.status == 'active' %}{{ t('live_now') }}
                 {% elif auction.status == 'upcoming' %}{{ t('starting_soon') }}
                 {% else %}{{ t('ended') }}
@@ -164,8 +152,20 @@
                             <input type="checkbox" id="terms_accept" />
                             <span>{{ t('terms_label') }}</span>
                         </label>
-                        <div class="terms-box">
-                            {{ t('terms_text') }}
+
+                        <button type="button" class="btn btn-secondary btn-terms" id="terms-open">
+                            {{ t('view_terms') }}
+                        </button>
+
+                        <div class="terms-modal" id="terms-modal" aria-hidden="true">
+                            <div class="terms-modal-backdrop" data-terms-close></div>
+                            <div class="terms-modal-card" role="dialog" aria-modal="true">
+                                <div class="terms-modal-title">{{ t('view_terms') }}</div>
+                                <div class="terms-modal-body">{{ t('terms_text') }}</div>
+                                <div class="terms-modal-actions">
+                                    <button type="button" class="btn btn-primary" data-terms-close>{{ t('close') }}</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 <button type="submit" class="btn btn-primary btn-block">
@@ -189,3 +189,13 @@
     </div>
 </div>
 {% endblock %}
+
+<div class="winner-overlay" id="winner-overlay" aria-hidden="true">
+    <div class="winner-overlay-backdrop"></div>
+    <div class="winner-overlay-card">
+        <div class="winner-overlay-title">{{ t('winner') }}</div>
+        <div class="winner-overlay-name" data-winner-name></div>
+        <div class="winner-overlay-amount" data-winner-amount></div>
+        <div class="winner-overlay-confetti" aria-hidden="true"></div>
+    </div>
+</div>

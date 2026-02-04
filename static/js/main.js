@@ -12,6 +12,25 @@ function getCookie(name) {
     }, '');
 }
 
+
+function initTermsModal() {
+    const modal = document.getElementById('terms-modal');
+    const openBtn = document.getElementById('terms-open');
+    if (!modal || !openBtn) return;
+
+    const setOpen = (open) => {
+        modal.setAttribute('aria-hidden', open ? 'false' : 'true');
+    };
+
+    openBtn.addEventListener('click', () => setOpen(true));
+    modal.querySelectorAll('[data-terms-close]').forEach(el => {
+        el.addEventListener('click', () => setOpen(false));
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') setOpen(false);
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize countdown timers
     initCountdowns();
@@ -19,6 +38,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize bid forms
     initBidForms();
     initTermsPrefill();
+    initTermsModal();
     
     // Auto-refresh auction status
     initAutoRefresh();
@@ -384,55 +404,87 @@ function initLiveBidRefresh() {
     const detail = document.querySelector('.auction-detail-grid[data-auction-id]');
     if (!detail) return;
     const auctionId = detail.dataset.auctionId;
-    const poll = async () => {
+
+    const applySnapshot = (data) => {
+        if (!data) return;
+        // Update price + bid count
+        updatePriceDisplay(data.current_price);
+        const bidCountEl = document.getElementById('bid-count');
+        if (bidCountEl) bidCountEl.textContent = data.bid_count;
+
+        // Update recent bids list if present
+        const list = document.getElementById('recent-bids');
+        if (list && Array.isArray(data.bids)) {
+            list.innerHTML = data.bids.map(b => {
+                const dt = new Date(b.created_at);
+                const ts = isNaN(dt) ? '' : dt.toLocaleString();
+                return `<div class="bid-item"><div class="bid-meta"><strong>${escapeHtml(b.name)}</strong><span>${ts}</span></div><div class="bid-amount">€${Number(b.amount).toFixed(2)}</div></div>`;
+            }).join('');
+        }
+
+        // Winner fullscreen celebration (once)
+        if (data.status === 'ended' && data.winner_name && data.notify_winner && !window.__zoltaWinnerShown) {
+            window.__zoltaWinnerShown = true;
+            showWinnerOverlay(data.winner_name, data.winner_amount);
+        }
+    };
+
+    // One initial fetch to populate (no full page reloads)
+    const initialFetch = async () => {
         try {
             const res = await fetch(`/api/auction/${auctionId}/state`, { cache: 'no-store' });
             if (!res.ok) return;
             const data = await res.json();
-            // Update price + bid count
-            updatePriceDisplay(data.current_price);
-            const bidCountEl = document.getElementById('bid-count');
-            if (bidCountEl) bidCountEl.textContent = data.bid_count;
-            // Update recent bids list if present
-            const list = document.getElementById('recent-bids');
-            if (list && Array.isArray(data.bids)) {
-                list.innerHTML = data.bids.map(b => {
-                    const dt = new Date(b.created_at);
-                    const ts = isNaN(dt) ? '' : dt.toLocaleString();
-                    return `<div class="bid-item"><div class="bid-meta"><strong>${escapeHtml(b.name)}</strong><span>${ts}</span></div><div class="bid-amount">€${Number(b.amount).toFixed(2)}</div></div>`;
-                }).join('');
-            }
-            // If auction ended, reload once to show winner state
-            if (data.status === 'ended' && !window.__zoltaEndedReloaded) {
-                window.__zoltaEndedReloaded = true;
-                setTimeout(() => window.location.reload(), 1200);
-            }
+            applySnapshot({
+                status: data.status,
+                current_price: data.current_price,
+                bid_count: data.bid_count,
+                winner_name: data.highest_bidder_name,
+                winner_amount: data.highest_bid_amount,
+                notify_winner: data.notify_winner,
+                bids: data.bids
+            });
         } catch (e) { /* ignore */ }
     };
-    poll();
+    initialFetch();
 
-    // Prefer true realtime via Server-Sent Events (SSE) if available
+    // True realtime via Server-Sent Events (SSE)
     if (window.EventSource) {
         try {
             const es = new EventSource(`/api/auction/${auctionId}/stream`);
-            es.addEventListener('update', () => poll());
-            es.addEventListener('hello', () => {});
+            es.addEventListener('update', (evt) => {
+                try {
+                    const payload = JSON.parse(evt.data || '{}');
+                    if (payload.type === 'snapshot' && payload.data) {
+                        applySnapshot(payload.data);
+                    }
+                } catch (e) { /* ignore */ }
+            });
             es.addEventListener('ping', () => {});
             es.onerror = () => {
-                try { es.close(); } catch(e) {}
-                // fallback to polling
-                if (!window.__zoltaPollFallbackStarted) {
-                    window.__zoltaPollFallbackStarted = true;
-                    setInterval(poll, 3000);
-                }
+                // Don't start hammering polls; just let EventSource reconnect.
+                // If proxy blocks SSE entirely, users can still submit bids; UI just won't live-update.
             };
         } catch (e) {
-            setInterval(poll, 3000);
+            // If EventSource fails to initialize, fall back to gentle polling of only bid state
+            setInterval(initialFetch, 5000);
         }
     } else {
-        setInterval(poll, 3000);
+        setInterval(initialFetch, 5000);
     }
 }
+
+function showWinnerOverlay(name, amount) {
+    const overlay = document.getElementById('winner-overlay');
+    if (!overlay) return;
+    const nm = overlay.querySelector('[data-winner-name]');
+    const am = overlay.querySelector('[data-winner-amount]');
+    if (nm) nm.textContent = name || '';
+    if (am) am.textContent = (amount != null) ? `€${Number(amount).toFixed(2)}` : '';
+    overlay.classList.add('show');
+    setTimeout(() => overlay.classList.remove('show'), 5000);
+}
+
 
 function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s]));
