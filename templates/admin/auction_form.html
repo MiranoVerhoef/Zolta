@@ -30,7 +30,7 @@ function setToday(inputId) {
             <li><a href="{{ url_for('admin_new_auction') }}" {% if not auction %}class="active"{% endif %}>New Auction</a></li>
             <li><a href="{{ url_for('admin_settings') }}">Settings</a></li>
             {% if session.get('admin_role','admin') == 'admin' %}
-            <li><a href=\"{{ url_for('admin_users') }}\">Users</a></li>
+            <li><a href="{{ url_for('admin_users') }}">Users</a></li>
             {% endif %}
             <li><a href="{{ url_for('index') }}">View Site</a></li>
             <li><a href="{{ url_for('admin_logout') }}">Logout</a></li>

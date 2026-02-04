@@ -16,7 +16,7 @@
             <li><a href="{{ url_for('admin_new_auction') }}">New Auction</a></li>
             <li><a href="{{ url_for('admin_settings') }}" class="active">Settings</a></li>
             {% if session.get('admin_role','admin') == 'admin' %}
-            <li><a href=\"{{ url_for('admin_users') }}\">Users</a></li>
+            <li><a href="{{ url_for('admin_users') }}">Users</a></li>
             {% endif %}
             <li><a href="{{ url_for('index') }}">View Site</a></li>
             <li><a href="{{ url_for('admin_logout') }}">Logout</a></li>

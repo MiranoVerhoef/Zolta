@@ -1085,3 +1085,26 @@ body.page-fade-in.page-fade-in-active{opacity:1;transition:opacity 220ms ease;}
 .pill-link:hover{ color: var(--text-primary); transform: translateY(-1px); }
 
 .admin-shell{max-width: 1200px; margin: 28px auto; padding: 0 18px;}
+
+
+/* Admin pill sidebar link readability */
+.admin-sidebar ul { list-style: none; padding: 0; margin: 1rem 0 0; }
+.admin-sidebar li { margin: 0.25rem 0; }
+.admin-sidebar a {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 999px;
+  color: rgba(15, 23, 42, 0.82);
+  text-decoration: none;
+  font-weight: 600;
+}
+.admin-sidebar a:hover {
+  background: rgba(59, 130, 246, 0.08);
+  color: rgba(15, 23, 42, 0.92);
+}
+.admin-sidebar a.active {
+  background: rgba(59, 130, 246, 0.14);
+  color: rgba(15, 23, 42, 0.96);
+}
