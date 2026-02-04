@@ -1,5 +1,19 @@
 // Auction System Frontend JavaScript
 
+
+function setCookie(name, value, days) {
+    const expires = new Date(Date.now() + (days * 864e5)).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+}
+function getCookie(name) {
+    return document.cookie.split('; ').reduce((r, v) => {
+        const parts = v.split('=');
+        return parts[0] === name ? decodeURIComponent(parts.slice(1).join('=')) : r
+    }, '');
+}
+
+
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize countdown timers
     initCountdowns();
@@ -80,6 +94,7 @@ function initBidForms() {
         submitBtn.textContent = 'Submitting...';
         
         const auctionId = bidForm.dataset.auctionId;
+
         const formData = {
             name: bidForm.querySelector('[name="name"]').value,
             email: bidForm.querySelector('[name="email"]').value,
@@ -338,38 +353,36 @@ function initPageTransitions(){
     }
 }
 
+
 function initLiveBidRefresh() {
     const detail = document.querySelector('.auction-detail-grid[data-auction-id]');
     if (!detail) return;
     const auctionId = detail.dataset.auctionId;
-    let pollingId = null;
 
     const applySnapshot = (data) => {
         if (!data) return;
-        // Update price + bid count
         updatePriceDisplay(data.current_price);
+
         const bidCountEl = document.getElementById('bid-count');
         if (bidCountEl) bidCountEl.textContent = data.bid_count;
 
-        // Update recent bids list if present
         const list = document.getElementById('recent-bids');
         if (list && Array.isArray(data.bids)) {
-            list.innerHTML = data.bids.map(b => {
+            list.innerHTML = data.bids.map((b, idx) => {
                 const dt = new Date(b.created_at);
                 const ts = isNaN(dt) ? '' : dt.toLocaleString();
-                return `<div class="bid-item"><div class="bid-meta"><strong>${escapeHtml(b.name)}</strong><span>${ts}</span></div><div class="bid-amount">€${Number(b.amount).toFixed(2)}</div></div>`;
+                const winning = idx === 0 ? ' winning' : '';
+                return `<div class="bid-item${winning}"><div class="bid-meta"><strong>${escapeHtml(b.name)}</strong><span>${ts}</span></div><div class="bid-amount">€${Number(b.amount).toFixed(2)}</div></div>`;
             }).join('');
         }
 
-        // Winner fullscreen celebration (once)
         if (data.status === 'ended' && data.winner_name && data.notify_winner && !window.__zoltaWinnerShown) {
             window.__zoltaWinnerShown = true;
             showWinnerOverlay(data.winner_name, data.winner_amount);
         }
     };
 
-    // One initial fetch to populate (no full page reloads)
-    const initialFetch = async () => {
+    const fetchState = async () => {
         try {
             const res = await fetch(`/api/auction/${auctionId}/state`, { cache: 'no-store' });
             if (!res.ok) return;
@@ -385,55 +398,10 @@ function initLiveBidRefresh() {
             });
         } catch (e) { /* ignore */ }
     };
-    initialFetch();
 
-    const ensurePolling = () => {
-        if (pollingId) return;
-        pollingId = setInterval(initialFetch, 4000);
-    };
-
-    // Prefer EventSource (SSE) when available
-    if (window.EventSource) {
-        try {
-            const source = new EventSource(`/api/auction/${auctionId}/stream`);
-            source.onmessage = (event) => {
-                try {
-                    applySnapshot(JSON.parse(event.data));
-                } catch (e) {
-                    // ignore malformed messages
-                }
-            };
-            source.onerror = () => {
-                source.close();
-                ensurePolling();
-            };
-            return;
-        } catch (e) {
-            ensurePolling();
-        }
-    }
-
-    // True realtime via WebSocket (Socket.IO) when SSE is unavailable
-    if (window.io) {
-        try {
-            const socket = io({ transports: ['websocket', 'polling'] });
-            let gotUpdate = false;
-            socket.on('connect', () => {
-                socket.emit('join_auction', { auction_id: auctionId });
-            });
-            socket.on('bid_update', (snapshot) => {
-                gotUpdate = true;
-                applySnapshot(snapshot);
-            });
-            socket.on('connect_error', ensurePolling);
-            socket.on('disconnect', ensurePolling);
-            setTimeout(() => { if (!gotUpdate) ensurePolling(); }, 4000);
-        } catch (e) {
-            ensurePolling();
-        }
-    } else {
-        ensurePolling();
-    }
+    // Always start immediately + keep polling (proxy-safe)
+    fetchState();
+    setInterval(fetchState, 2000);
 }
 
 function showWinnerOverlay(name, amount) {

@@ -1,5 +1,5 @@
 /* Zolta Service Worker (basic offline support) */
-const CACHE_NAME = 'zolta-cache-v' + (self.APP_VERSION || 'dev');
+const CACHE_NAME = 'zolta-cache-v1.3.2';
 const ASSETS = [
   "/",
   "/static/css/style.css",

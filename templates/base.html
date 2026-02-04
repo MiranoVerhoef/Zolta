@@ -41,7 +41,6 @@
 
     <footer class="footer-pill"><span>Zolta v{{ app_version }} © 2026 - Verhoef</span></footer>
 
-    <script src="/socket.io/socket.io.js"></script>
     <script src="{{ url_for('static', filename='js/main.js', v=app_version) }}"></script>
 
 
@@ -55,6 +54,12 @@
             </select>
         </form>
     </div>
+
+
+<script>
+window.TRANSLATIONS = window.TRANSLATIONS || {};
+window.TRANSLATIONS.terms_required = "{{ t('terms_required') }}";
+</script>
 
 </body>
 </html>

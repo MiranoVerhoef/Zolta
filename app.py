@@ -12,7 +12,7 @@ from threading import Lock
 
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION', '1.3.1')
+APP_VERSION = os.environ.get('APP_VERSION', '1.3.2')
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
 
 from queue import Queue, Empty
@@ -376,7 +376,7 @@ TRANSLATIONS = {
         'upcoming_auctions': 'Upcoming Auctions',
         'recently_ended': 'Recently Ended',
         'no_auctions_yet': 'No Auctions Yet',
-        'check_back_soon': 'Check back soon for upcoming auctions!',        'confirm_bid_subject': 'Confirm your bid - {title}',        'confirm_bid_heading': 'Confirm your bid',        'confirm_bid_cta': 'Click here to confirm your bid',        'confirm_bid_expires': 'This link expires in 30 minutes.',        'ending_soon_subject': 'Auction ending soon: {title}',        'ended_subject': 'Auction ended: {title}',        'winner_subject': 'You won: {title}',
+        'check_back_soon': 'Check back soon for upcoming auctions!',        'confirm_bid_subject': 'Confirm your bid - {title}',        'confirm_bid_heading': 'Confirm your bid',        'confirm_bid_cta': 'Click here to confirm your bid',        'confirm_bid_expires': 'This link expires in 30 minutes.',        'ending_soon_subject': 'Auction ending soon: {title}',        'ended_subject': 'Auction ended: {title}',        'winner_subject': 'You won: {title}',        'terms_label': 'When placing a bid you must comply with the terms',        'terms_text': 'We are not responsible for anything related to the auction or the goods being auctioned.',        'terms_required': 'You must accept the terms before placing a bid.',
 
 
 
@@ -397,6 +397,10 @@ TRANSLATIONS = {
         'ending_soon_subject': 'Veiling eindigt bijna: {title}',
         'ended_subject': 'Veiling afgelopen: {title}',
         'winner_subject': 'Je hebt gewonnen: {title}',
+        'terms_label': 'Bij het plaatsen van een bod ga je akkoord met de voorwaarden',
+        'terms_text': 'De website is niet verantwoordelijk voor iets dat te maken heeft met de veiling of de geveilde goederen.',
+        'terms_required': 'Je moet de voorwaarden accepteren voordat je een bod kunt plaatsen.',
+
         'auctions': 'Veilingen',
         'admin_panel': 'Beheer',
         'admin': 'Admin',
@@ -415,6 +419,10 @@ TRANSLATIONS = {
         'email_address': 'E-mailadres',
         'bid_amount': 'Bedrag (€)',
         'place_bid': 'Bod plaatsen',
+        'terms_label': 'Wanneer je een bod plaatst moet je akkoord gaan met de voorwaarden',
+        'terms_text': 'De website is niet verantwoordelijk voor iets dat te maken heeft met de veiling of de geveilde goederen.',
+        'view_terms': 'Bekijk voorwaarden',
+        'close': 'Sluiten',
         'winner': 'Winnaar',
         'you_won': 'Je hebt gewonnen!',
         'verification_email_sent': 'Check je e-mail om je bod te bevestigen. Daarna hoef je 7 dagen niet opnieuw te verifiëren.',
@@ -699,7 +707,7 @@ def place_bid(auction_id):
         amount = float(amount)
     except (ValueError, TypeError):
         return jsonify({'success': False, 'error': 'Invalid bid amount.'}), 400
-    
+
     # Email domain validation
     if auction.whitelisted_domains:
         if not validate_email_domain(email, auction.whitelisted_domains):
