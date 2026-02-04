@@ -11,8 +11,73 @@ from threading import Lock
 
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION', '1.2.8')
+APP_VERSION = os.environ.get('APP_VERSION', '1.2.9')
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
+
+from queue import Queue, Empty
+
+class StreamHub:
+    def __init__(self):
+        self._subs = {}
+        self._lock = Lock()
+
+    def subscribe(self, auction_id: int) -> Queue:
+        q = Queue()
+        with self._lock:
+            self._subs.setdefault(auction_id, set()).add(q)
+        return q
+
+    def unsubscribe(self, auction_id: int, q: Queue):
+        with self._lock:
+            s = self._subs.get(auction_id)
+            if s and q in s:
+                s.remove(q)
+            if s and len(s) == 0:
+                self._subs.pop(auction_id, None)
+
+    def publish(self, auction_id: int, payload: dict):
+        data = json.dumps(payload)
+        with self._lock:
+            subs = list(self._subs.get(auction_id, set()))
+        for q in subs:
+            try:
+                q.put_nowait(data)
+            except Exception:
+                pass
+
+stream_hub = StreamHub()
+
+def get_auction_state_payload(auction_id: int) -> dict:
+    auction = Auction.query.get(auction_id)
+    if not auction:
+        return {}
+    # recent bids (verified only)
+    bids = Bid.query.filter_by(auction_id=auction_id, verified=True).order_by(Bid.amount.desc()).limit(10).all()
+    recent = []
+    for b in bids:
+        try:
+            t = b.created_at.strftime('%d-%m %H:%M')
+        except Exception:
+            t = ''
+        recent.append({"name": b.name, "amount": float(b.amount), "time": t})
+    winner = None
+    if auction.status == 'ended' and auction.winner_name and auction.winner_amount is not None:
+        winner = {"name": auction.winner_name, "amount": float(auction.winner_amount)}
+    return {
+        "auction_id": auction_id,
+        "status": auction.status,
+        "current_price": float(auction.current_price or 0),
+        "bid_count": int(Bid.query.filter_by(auction_id=auction_id, verified=True).count()),
+        "recent_bids": recent,
+        "winner": winner,
+    }
+
+def publish_auction_update(auction_id: int):
+    try:
+        stream_hub.publish(auction_id, get_auction_state_payload(auction_id))
+    except Exception:
+        pass
+
 
 def load_config_file():
     try:
@@ -300,6 +365,18 @@ TRANSLATIONS = {
 
     },
     'nl': {
+
+        'confirm_bid_subject': 'Bevestig je bod - {title}',
+        'confirm_bid_heading': 'Bevestig je bod',
+        'confirm_bid_cta': 'Klik hier om je bod te bevestigen',
+        'confirm_bid_expires': 'Deze link verloopt over 30 minuten.',
+        'ending_soon_subject': 'Veiling eindigt bijna: {title}',
+        'ended_subject': 'Veiling afgelopen: {title}',
+        'winner_subject': 'Je hebt gewonnen: {title}',
+        'terms_label': 'Bij het plaatsen van een bod ga je akkoord met de voorwaarden',
+        'terms_text': 'De website is niet verantwoordelijk voor iets dat te maken heeft met de veiling of de geveilde goederen.',
+        'terms_required': 'Je moet de voorwaarden accepteren voordat je een bod kunt plaatsen.',
+
         'auctions': 'Veilingen',
         'admin_panel': 'Beheer',
         'admin': 'Admin',
@@ -791,35 +868,36 @@ def verify_bid(token):
 
 
 
+
 @app.route('/api/auction/<int:auction_id>/stream')
 def auction_stream(auction_id):
-    # SSE stream of bid updates. Requires a single gunicorn worker (or shared broker).
-    q: Queue = Queue()
-    with _AUCTION_SUBS_LOCK:
-        _AUCTION_SUBS.setdefault(int(auction_id), []).append(q)
-
+    """Server-Sent Events stream for real-time bid updates."""
     def gen():
+        q = stream_hub.subscribe(auction_id)
         try:
-            # initial hello to open the stream immediately
-            yield "event: hello\ndata: {}\n\n"
+            # send initial state
+            initial = get_auction_state_payload(auction_id)
+            yield f"data: {json.dumps(initial)}\n\n"
             while True:
-                try:
-                    payload = q.get(timeout=25)
-                    yield "event: update\ndata: " + json.dumps(payload) + "\n\n"
-                except Empty:
-                    # keepalive
-                    yield "event: ping\ndata: {}\n\n"
+                msg = q.get()
+                if msg is None:
+                    break
+                yield f"data: {msg}\n\n"
+        except GeneratorExit:
+            pass
+        except Exception:
+            # never crash the worker because a client disconnected
+            pass
         finally:
-            with _AUCTION_SUBS_LOCK:
-                lst = _AUCTION_SUBS.get(int(auction_id), [])
-                if q in lst:
-                    lst.remove(q)
+            stream_hub.unsubscribe(auction_id, q)
+    headers = {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
+    }
+    return Response(gen(), headers=headers)
 
-    resp = Response(stream_with_context(gen()), mimetype='text/event-stream')
-    resp.headers['Cache-Control'] = 'no-cache'
-    resp.headers['X-Accel-Buffering'] = 'no'
-    resp.headers['Connection'] = 'keep-alive'
-    return resp
 
 @app.route('/api/auction/<int:auction_id>/status')
 def auction_status(auction_id):
