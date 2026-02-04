@@ -1,44 +1,11 @@
 // Auction System Frontend JavaScript
 
-
-function setCookie(name, value, days) {
-    const expires = new Date(Date.now() + (days * 864e5)).toUTCString();
-    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
-}
-function getCookie(name) {
-    return document.cookie.split('; ').reduce((r, v) => {
-        const parts = v.split('=');
-        return parts[0] === name ? decodeURIComponent(parts.slice(1).join('=')) : r
-    }, '');
-}
-
-
-function initTermsModal() {
-    const modal = document.getElementById('terms-modal');
-    const openBtn = document.getElementById('terms-open');
-    if (!modal || !openBtn) return;
-
-    const setOpen = (open) => {
-        modal.setAttribute('aria-hidden', open ? 'false' : 'true');
-    };
-
-    openBtn.addEventListener('click', () => setOpen(true));
-    modal.querySelectorAll('[data-terms-close]').forEach(el => {
-        el.addEventListener('click', () => setOpen(false));
-    });
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') setOpen(false);
-    });
-}
-
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize countdown timers
     initCountdowns();
     
     // Initialize bid forms
     initBidForms();
-    initTermsPrefill();
-    initTermsModal();
     
     // Auto-refresh auction status
     initAutoRefresh();
@@ -113,22 +80,10 @@ function initBidForms() {
         submitBtn.textContent = 'Submitting...';
         
         const auctionId = bidForm.dataset.auctionId;
-        const termsEl = document.getElementById('terms_accept');
-        const termsAccepted = termsEl ? termsEl.checked : (getCookie('terms_accepted') === 'yes');
-        if (termsEl && !termsAccepted) {
-            showMessage('error', (window.TRANSLATIONS && window.TRANSLATIONS.terms_required) ? window.TRANSLATIONS.terms_required : 'You must accept the terms before placing a bid.');
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
-            return;
-        }
-        // Remember terms acceptance for 30 days
-        if (termsAccepted) setCookie('terms_accepted', 'yes', 30);
-
         const formData = {
             name: bidForm.querySelector('[name="name"]').value,
             email: bidForm.querySelector('[name="email"]').value,
-            amount: parseFloat(bidForm.querySelector('[name="amount"]').value),
-            termsAccepted: termsAccepted
+            amount: parseFloat(bidForm.querySelector('[name="amount"]').value)
         };
         
         try {
@@ -381,23 +336,6 @@ function initPageTransitions(){
             document.body.classList.remove('page-fade-in-active');
         }, 250);
     }
-}
-
-function initTermsPrefill() {
-    const termsEl = document.getElementById('terms_accept');
-    const group = document.getElementById('terms-group');
-    if (!termsEl) return;
-    const accepted = (getCookie('terms_accepted') === 'yes');
-    if (accepted) {
-        termsEl.checked = true;
-        if (group) group.style.display = 'none';
-    }
-    termsEl.addEventListener('change', () => {
-        if (termsEl.checked) {
-            setCookie('terms_accepted', 'yes', 30);
-            if (group) group.style.display = 'none';
-        }
-    });
 }
 
 function initLiveBidRefresh() {
