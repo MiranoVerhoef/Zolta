@@ -1,14 +1,28 @@
 // Auction System Frontend JavaScript
 
+
+function setCookie(name, value, days) {
+    const expires = new Date(Date.now() + (days * 864e5)).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+}
+function getCookie(name) {
+    return document.cookie.split('; ').reduce((r, v) => {
+        const parts = v.split('=');
+        return parts[0] === name ? decodeURIComponent(parts.slice(1).join('=')) : r
+    }, '');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize countdown timers
     initCountdowns();
     
     // Initialize bid forms
     initBidForms();
+    initTermsPrefill();
     
     // Auto-refresh auction status
     initAutoRefresh();
+    initLiveBidRefresh();
     // Smooth page transitions (progressive enhancement)
     initPageTransitions();
 
@@ -79,10 +93,22 @@ function initBidForms() {
         submitBtn.textContent = 'Submitting...';
         
         const auctionId = bidForm.dataset.auctionId;
+        const termsEl = document.getElementById('terms_accept');
+        const termsAccepted = termsEl ? termsEl.checked : (getCookie('terms_accepted') === 'yes');
+        if (termsEl && !termsAccepted) {
+            showMessage('error', (window.TRANSLATIONS && window.TRANSLATIONS.terms_required) ? window.TRANSLATIONS.terms_required : 'You must accept the terms before placing a bid.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+            return;
+        }
+        // Remember terms acceptance for 30 days
+        if (termsAccepted) setCookie('terms_accepted', 'yes', 30);
+
         const formData = {
             name: bidForm.querySelector('[name="name"]').value,
             email: bidForm.querySelector('[name="email"]').value,
-            amount: parseFloat(bidForm.querySelector('[name="amount"]').value)
+            amount: parseFloat(bidForm.querySelector('[name="amount"]').value),
+            termsAccepted: termsAccepted
         };
         
         try {
@@ -335,4 +361,57 @@ function initPageTransitions(){
             document.body.classList.remove('page-fade-in-active');
         }, 250);
     }
+}
+
+function initTermsPrefill() {
+    const termsEl = document.getElementById('terms_accept');
+    const group = document.getElementById('terms-group');
+    if (!termsEl) return;
+    const accepted = (getCookie('terms_accepted') === 'yes');
+    if (accepted) {
+        termsEl.checked = true;
+        if (group) group.style.display = 'none';
+    }
+    termsEl.addEventListener('change', () => {
+        if (termsEl.checked) {
+            setCookie('terms_accepted', 'yes', 30);
+            if (group) group.style.display = 'none';
+        }
+    });
+}
+
+function initLiveBidRefresh() {
+    const detail = document.querySelector('.auction-detail-grid[data-auction-id]');
+    if (!detail) return;
+    const auctionId = detail.dataset.auctionId;
+    const poll = async () => {
+        try {
+            const res = await fetch(`/api/auction/${auctionId}/state`, { cache: 'no-store' });
+            if (!res.ok) return;
+            const data = await res.json();
+            // Update price + bid count
+            updatePriceDisplay(data.current_price);
+            const bidCountEl = document.getElementById('bid-count');
+            if (bidCountEl) bidCountEl.textContent = data.bid_count;
+            // Update recent bids list if present
+            const list = document.getElementById('recent-bids');
+            if (list && Array.isArray(data.bids)) {
+                list.innerHTML = data.bids.map(b => {
+                    const dt = new Date(b.created_at);
+                    const ts = isNaN(dt) ? '' : dt.toLocaleString();
+                    return `<div class="bid-item"><div class="bid-meta"><strong>${escapeHtml(b.name)}</strong><span>${ts}</span></div><div class="bid-amount">€${Number(b.amount).toFixed(2)}</div></div>`;
+                }).join('');
+            }
+            // If auction ended, reload once to show winner state
+            if (data.status === 'ended' && !window.__zoltaEndedReloaded) {
+                window.__zoltaEndedReloaded = true;
+                setTimeout(() => window.location.reload(), 1200);
+            }
+        } catch (e) { /* ignore */ }
+    };
+    poll();
+    setInterval(poll, 3000);
+}
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s]));
 }

@@ -1122,3 +1122,33 @@ body.page-fade-in.page-fade-in-active{opacity:1;transition:opacity 220ms ease;}
   background: rgba(255,255,255,0.80);
   border: 1px solid var(--border-color);
 }
+
+
+/* Terms acceptance */
+.terms-group { margin-top: 14px; }
+.terms-label { display:flex; gap:10px; align-items:center; font-weight:600; }
+.terms-box { margin-top:10px; padding:12px 14px; border-radius: 14px; background: rgba(0,0,0,0.03); color: var(--text); font-size: 0.95em; }
+.terms-box a { color: inherit; text-decoration: underline; }
+
+/* Winner celebration */
+.winner-celebration { position: relative; margin: 0 0 18px 0; }
+.winner-card { border-radius: var(--radius-xl); background: var(--surface); padding: 18px 18px; border: 1px solid rgba(0,0,0,0.06); box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+.winner-title { font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 6px; }
+.winner-name { font-size: 1.4em; font-weight: 800; }
+.winner-amount { margin-top: 4px; font-size: 1.1em; font-weight: 700; }
+
+/* Lightweight confetti (CSS only) */
+.confetti { pointer-events:none; position:absolute; inset: -6px; overflow:hidden; border-radius: var(--radius-xl); }
+.confetti:before, .confetti:after {
+  content:""; position:absolute; top:-20px; left:0; right:0; height:140%;
+  background-image:
+    radial-gradient(circle, rgba(59,130,246,0.55) 2px, transparent 3px),
+    radial-gradient(circle, rgba(16,185,129,0.55) 2px, transparent 3px),
+    radial-gradient(circle, rgba(245,158,11,0.55) 2px, transparent 3px),
+    radial-gradient(circle, rgba(239,68,68,0.55) 2px, transparent 3px);
+  background-size: 60px 60px;
+  animation: confetti-fall 2.8s linear infinite;
+  opacity: 0.9;
+}
+.confetti:after { animation-duration: 3.6s; opacity:0.6; filter: blur(0.2px); }
+@keyframes confetti-fall { from { transform: translateY(-20%); } to { transform: translateY(20%); } }

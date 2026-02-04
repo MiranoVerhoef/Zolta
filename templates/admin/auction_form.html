@@ -141,6 +141,16 @@
                         <span>Require email confirmation for bids</span>
                     </label>
                 </div>
+                    <div class="form-group">
+                        <label class="form-label">Auction Language</label>
+                        <select name="language" class="form-input">
+                            {% set cur_lang = (auction.language if auction else None) or 'nl' %}
+                            <option value="nl" {% if cur_lang=='nl' %}selected{% endif %}>Nederlands</option>
+                            <option value="en" {% if cur_lang=='en' %}selected{% endif %}>English</option>
+                        </select>
+                        <span class="form-hint">Used for bid confirmation and notification emails.</span>
+                    </div>
+
                 
 
                 <div class="form-group">

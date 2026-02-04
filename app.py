@@ -8,7 +8,7 @@ import os
 import json
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION', '1.2.5')
+APP_VERSION = os.environ.get('APP_VERSION', '1.2.6')
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
 
 def load_config_file():
@@ -92,6 +92,7 @@ class Auction(db.Model):
     require_email_confirmation = db.Column(db.Boolean, default=True)
     whitelisted_domains = db.Column(db.Text, nullable=True)  # Comma-separated
     show_allowed_domains = db.Column(db.Boolean, default=True)  # Show domains to users
+    language = db.Column(db.String(2), default='nl')  # Auction language for emails/confirmation
     # Notification options
     notify_winner = db.Column(db.Boolean, default=True)
     ending_soon_notified_at = db.Column(db.DateTime, nullable=True)
@@ -246,7 +247,17 @@ TRANSLATIONS = {
         'upcoming_auctions': 'Upcoming Auctions',
         'recently_ended': 'Recently Ended',
         'no_auctions_yet': 'No Auctions Yet',
-        'check_back_soon': 'Check back soon for upcoming auctions!',
+        'check_back_soon': 'Check back soon for upcoming auctions!',        'confirm_bid_subject': 'Confirm your bid - {title}',        'confirm_bid_heading': 'Confirm your bid',        'confirm_bid_cta': 'Click here to confirm your bid',        'confirm_bid_expires': 'This link expires in 30 minutes.',        'ending_soon_subject': 'Auction ending soon: {title}',        'ended_subject': 'Auction ended: {title}',        'winner_subject': 'You won: {title}',        'terms_label': 'When placing a bid you must comply with the terms',        'terms_text': 'We are not responsible for anything related to the auction or the goods being auctioned.',        'terms_required': 'You must accept the terms before placing a bid.',
+
+
+
+
+
+
+
+
+
+
     },
     'nl': {
         'auctions': 'Veilingen',
@@ -277,14 +288,34 @@ TRANSLATIONS = {
     }
 }
 
+def t_for_lang(lang, key):
+    lang = (lang or '').strip().lower()
+    if lang not in ("en", "nl"):
+        lang = get_site_language()
+    return TRANSLATIONS.get(lang, TRANSLATIONS['en']).get(key, key)
+
+
 @app.context_processor
 def inject_helpers():
+    def t_for_lang(lang, key):
+        return t_for_lang(lang, key)
+
     def t(key):
         lang = get_site_language()
         return TRANSLATIONS.get(lang, TRANSLATIONS['en']).get(key, key)
+
     def now():
         return datetime.now()
-    return dict(t=t, site_lang=get_site_language(), now=now, settings=get_all_settings(), theme_background=get_setting('background_color', '#dcdcdc'), app_version=APP_VERSION)
+
+    return dict(
+        t=t,
+        t_for=t_for,
+        site_lang=get_site_language(),
+        now=now,
+        settings=get_all_settings(),
+        theme_background=get_setting('background_color', '#dcdcdc'),
+        app_version=APP_VERSION
+    )
 
 @app.post("/set-language")
 def set_language():
@@ -364,7 +395,8 @@ def check_and_send_auction_notifications():
         if not emails:
             continue
 
-        subject = f"Auction ending soon: {auction.title}"
+        lang = getattr(auction, 'language', None) or get_site_language()
+        subject = t_for_lang(lang, 'ending_soon_subject').format(title=auction.title)
         end_str = auction.end_date.strftime('%Y-%m-%d %H:%M')
         current = auction.current_price
         link = f"{site_url}/auction/{auction.id}" if site_url else ""
@@ -377,6 +409,21 @@ def check_and_send_auction_notifications():
         """
         for email in emails:
             send_email(email, subject, body, text_body=None)
+
+        # Notify the winner separately
+        if highest and highest.bidder_email:
+            w_subj = t_for_lang(lang, 'winner_subject').format(title=auction.title)
+            if lang == 'nl':
+                w_body = f"""<p>Gefeliciteerd {highest.bidder_name},</p>
+<p>Je hebt de veiling <strong>{auction.title}</strong> gewonnen met een bod van <strong>€{highest.amount:.2f}</strong>.</p>
+{link_line}
+"""
+            else:
+                w_body = f"""<p>Congratulations {highest.bidder_name},</p>
+<p>You won <strong>{auction.title}</strong> with a bid of <strong>€{highest.amount:.2f}</strong>.</p>
+{link_line}
+"""
+            send_email(highest.bidder_email, w_subj, w_body, text_body=None)
 
     # Ended (only once)
     ended_auctions = Auction.query.filter(
@@ -395,7 +442,8 @@ def check_and_send_auction_notifications():
             winner_block = f"""<p><strong>Winner:</strong> {highest.bidder_name} ({highest.bidder_email})</p>
             <p><strong>Winning bid:</strong> €{highest.amount:.2f}</p>"""
 
-        subject = f"Auction ended: {auction.title}"
+        lang = getattr(auction, 'language', None) or get_site_language()
+        subject = t_for_lang(lang, 'ended_subject').format(title=auction.title)
         end_str = auction.end_date.strftime('%Y-%m-%d %H:%M')
         link = f"{site_url}/auction/{auction.id}" if site_url else ""
         link_line = f'<p>View details: <a href="{link}">{link}</a></p>' if link else ""
@@ -408,6 +456,21 @@ def check_and_send_auction_notifications():
 
         for email in emails:
             send_email(email, subject, body, text_body=None)
+
+        # Notify the winner separately
+        if highest and highest.bidder_email:
+            w_subj = t_for_lang(lang, 'winner_subject').format(title=auction.title)
+            if lang == 'nl':
+                w_body = f"""<p>Gefeliciteerd {highest.bidder_name},</p>
+<p>Je hebt de veiling <strong>{auction.title}</strong> gewonnen met een bod van <strong>€{highest.amount:.2f}</strong>.</p>
+{link_line}
+"""
+            else:
+                w_body = f"""<p>Congratulations {highest.bidder_name},</p>
+<p>You won <strong>{auction.title}</strong> with a bid of <strong>€{highest.amount:.2f}</strong>.</p>
+{link_line}
+"""
+            send_email(highest.bidder_email, w_subj, w_body, text_body=None)
 
         auction.ended_notified_at = now
         db.session.commit()
@@ -483,7 +546,7 @@ def place_bid(auction_id):
     if not auction.is_running:
         return jsonify({'success': False, 'error': 'This auction is not currently accepting bids.'}), 400
     
-    data = request.json
+    data = request.json or {}
     name = data.get('name', '').strip()
     email = data.get('email', '').strip().lower()
     amount = data.get('amount')
@@ -497,6 +560,13 @@ def place_bid(auction_id):
     except (ValueError, TypeError):
         return jsonify({'success': False, 'error': 'Invalid bid amount.'}), 400
     
+    # Terms acceptance (stored in cookie to avoid repeated prompts)
+    terms_cookie = (request.cookies.get('terms_accepted') or '').strip().lower()
+    terms_ok = bool(data.get('termsAccepted')) or (terms_cookie == 'yes')
+    if not terms_ok:
+        lang = getattr(auction, 'language', None) or get_site_language()
+        return jsonify({'success': False, 'error': t_for_lang(lang, 'terms_required')}), 400
+
     # Email domain validation
     if auction.whitelisted_domains:
         if not validate_email_domain(email, auction.whitelisted_domains):
@@ -545,31 +615,34 @@ def place_bid(auction_id):
             db.session.commit()
 
             verify_url = url_for('verify_bid', token=token, _external=True)
+            lang = getattr(auction, 'language', None) or get_site_language()
 
             html_body = f"""
-                <h2>Confirm your bid</h2>
+                <h2>{t_for_lang(lang, 'confirm_bid_heading')}</h2>
                 <p>Hi {name},</p>
-                <p>Please confirm your bid for <strong>{auction.title}</strong>:</p>
+                <p>{t_for_lang(lang, 'confirm_bid_heading')} - <strong>{auction.title}</strong>:</p>
                 <ul>
                     <li>Bid amount: <strong>€{amount:.2f}</strong></li>
                 </ul>
-                <p><a href=\"{verify_url}\">Click here to confirm your bid</a></p>
-                <p>This link expires in 30 minutes.</p>
+                <p><a href=\"{verify_url}\">{t_for_lang(lang, 'confirm_bid_cta')}</a></p>
+                <p>{t_for_lang(lang, 'confirm_bid_expires')}</p>
             """
 
-            text_body = f"""Confirm your bid
+            text_body = f"""{t_for_lang(lang, 'confirm_bid_heading')}
 
 Auction: {auction.title}
 Bid amount: €{amount:.2f}
 
-Confirm here: {verify_url}
+{t_for_lang(lang, 'confirm_bid_cta')}: {verify_url}
 
-This link expires in 30 minutes.
+{t_for_lang(lang, 'confirm_bid_expires')}
 """
+
+            subject = t_for_lang(lang, 'confirm_bid_subject').format(title=auction.title)
 
             success, message = send_email(
                 email,
-                f"Confirm your bid - {auction.title}",
+                subject,
                 html_body,
                 text_body
             )
@@ -681,6 +754,30 @@ def auction_status(auction_id):
         'end_date': auction.end_date.isoformat()
     })
 
+
+@app.route('/api/auction/<int:auction_id>/state')
+def auction_state(auction_id):
+    auction = Auction.query.get_or_404(auction_id)
+    bids = Bid.query.filter_by(auction_id=auction_id).order_by(Bid.amount.desc()).limit(10).all()
+    highest = auction.highest_bidder
+    return jsonify({
+        'auction_id': auction.id,
+        'status': auction.status,
+        'current_price': auction.current_price,
+        'bid_count': len(auction.bids),
+        'highest_bidder_name': highest.bidder_name if highest else None,
+        'highest_bidder_email': highest.bidder_email if highest else None,
+        'highest_bid_amount': float(highest.amount) if highest else None,
+        'start_date': auction.start_date.isoformat(),
+        'end_date': auction.end_date.isoformat(),
+        'notify_winner': bool(getattr(auction, 'notify_winner', False)),
+        'bids': [{
+            'name': b.bidder_name,
+            'amount': float(b.amount),
+            'created_at': b.created_at.isoformat()
+        } for b in bids]
+    })
+
 # Admin Routes
 @app.route('/admin')
 @staff_required
@@ -743,6 +840,7 @@ def admin_new_auction():
             whitelisted_domains=request.form.get('whitelisted_domains', '').strip() or None,
             show_allowed_domains=request.form.get('show_allowed_domains') == 'on',
             notify_winner=request.form.get('notify_winner') == 'on',
+            language=(request.form.get('language') or 'nl').strip().lower(),
             is_active=True
         )
         
@@ -897,6 +995,8 @@ def ensure_sqlite_columns():
             cur.execute("ALTER TABLE auction ADD COLUMN ending_soon_notified_at DATETIME")
         if 'ended_notified_at' not in cols:
             cur.execute("ALTER TABLE auction ADD COLUMN ended_notified_at DATETIME")
+        if 'language' not in cols:
+            cur.execute("ALTER TABLE auction ADD COLUMN language VARCHAR(2) DEFAULT 'nl'")
         
         # Ensure Admin.role exists
         cur.execute("PRAGMA table_info(admin)")
@@ -927,6 +1027,7 @@ def ensure_db_schema():
         add_col("notify_winner", "notify_winner BOOLEAN DEFAULT 1")
         add_col("ending_soon_notified_at", "ending_soon_notified_at DATETIME")
         add_col("ended_notified_at", "ended_notified_at DATETIME")
+        add_col("language", "language VARCHAR(2) DEFAULT 'nl'")
 
 def init_db():
     with app.app_context():

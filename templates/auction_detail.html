@@ -26,7 +26,7 @@
             {% if bids %}
             <div class="bid-history mt-2">
                 <h3>{{ t('bid_history') }}</h3>
-                <ul class="bid-list">
+                <div class="bid-list" id="recent-bids">
                     {% for bid in bids %}
                     <li class="bid-item {% if loop.first %}winning{% endif %}">
                         <div class="bidder-info">
@@ -36,14 +36,26 @@
                         <span class="bid-amount">€{{ "%.2f"|format(bid.amount) }}</span>
                     </li>
                     {% endfor %}
-                </ul>
+                </div>
             </div>
             {% endif %}
         </div>
         
         <div class="auction-info">
             <span class="auction-status {{ auction.status }}">
-                {% if auction.status == 'active' %}{{ t('live_now') }}
+                
+            {% if auction.status == 'ended' and auction.highest_bidder and auction.notify_winner %}
+            <div class="winner-celebration" id="winner-celebration">
+                <div class="winner-card">
+                    <div class="winner-title">Winner</div>
+                    <div class="winner-name">{{ auction.highest_bidder.bidder_name }}</div>
+                    <div class="winner-amount">€{{ '%.2f'|format(auction.highest_bidder.amount) }}</div>
+                </div>
+                <div class="confetti" aria-hidden="true"></div>
+            </div>
+            {% endif %}
+
+{% if auction.status == 'active' %}{{ t('live_now') }}
                 {% elif auction.status == 'upcoming' %}{{ t('starting_soon') }}
                 {% else %}{{ t('ended') }}
                 {% endif %}
@@ -146,7 +158,17 @@
                         <span class="form-hint">Minimum bid: €{{ "%.2f"|format(min_bid) }}</span>
                     </div>
                     
-                    <button type="submit" class="btn btn-primary btn-block">
+                    
+                    <div class="form-group terms-group" id="terms-group">
+                        <label class="terms-label">
+                            <input type="checkbox" id="terms_accept" />
+                            <span>{{ t('terms_label') }}</span>
+                        </label>
+                        <div class="terms-box">
+                            {{ t('terms_text') }}
+                        </div>
+                    </div>
+<button type="submit" class="btn btn-primary btn-block">
                         Place Bid
                     </button>
                 </form>
