@@ -173,3 +173,18 @@
     </main>
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script>
+function setToday(fieldId){
+  const el = document.getElementById(fieldId);
+  if(!el) return;
+  const d = new Date();
+  // format to yyyy-MM-ddTHH:mm for datetime-local
+  const pad = (n) => String(n).padStart(2,'0');
+  const val = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  el.value = val;
+  el.dispatchEvent(new Event('change', {bubbles:true}));
+}
+</script>
+{% endblock %}
