@@ -12,7 +12,7 @@ from threading import Lock
 
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION', '1.3.0')
+APP_VERSION = os.environ.get('APP_VERSION', '1.3.1')
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
 
 from queue import Queue, Empty
@@ -147,9 +147,6 @@ def ws_broadcast_auction(auction_id: int):
         snapshot = {"auction_id": int(auction_id)}
     socketio.emit("bid_update", snapshot, room=f"auction_{int(auction_id)}")
 
-@app.context_processor
-def inject_app_version():
-    return {'app_version': APP_VERSION}
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////app/instance/auctions.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -445,6 +442,7 @@ def t_for_lang(lang, key):
     return (TRANSLATIONS.get(lang, {}).get(key) or TRANSLATIONS['en'].get(key, key))
 
 
+@app.context_processor
 def inject_helpers():
     def t(key: str):
         lang = get_site_language()
