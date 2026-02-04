@@ -342,6 +342,7 @@ function initLiveBidRefresh() {
     const detail = document.querySelector('.auction-detail-grid[data-auction-id]');
     if (!detail) return;
     const auctionId = detail.dataset.auctionId;
+    let pollingId = null;
 
     const applySnapshot = (data) => {
         if (!data) return;
@@ -386,26 +387,52 @@ function initLiveBidRefresh() {
     };
     initialFetch();
 
-    // True realtime via WebSocket (Socket.IO)
+    const ensurePolling = () => {
+        if (pollingId) return;
+        pollingId = setInterval(initialFetch, 4000);
+    };
+
+    // Prefer EventSource (SSE) when available
+    if (window.EventSource) {
+        try {
+            const source = new EventSource(`/api/auction/${auctionId}/stream`);
+            source.onmessage = (event) => {
+                try {
+                    applySnapshot(JSON.parse(event.data));
+                } catch (e) {
+                    // ignore malformed messages
+                }
+            };
+            source.onerror = () => {
+                source.close();
+                ensurePolling();
+            };
+            return;
+        } catch (e) {
+            ensurePolling();
+        }
+    }
+
+    // True realtime via WebSocket (Socket.IO) when SSE is unavailable
     if (window.io) {
         try {
             const socket = io({ transports: ['websocket', 'polling'] });
+            let gotUpdate = false;
             socket.on('connect', () => {
                 socket.emit('join_auction', { auction_id: auctionId });
             });
             socket.on('bid_update', (snapshot) => {
+                gotUpdate = true;
                 applySnapshot(snapshot);
             });
-            socket.on('disconnect', () => { /* will auto-reconnect */ });
-            // Safety fallback: if we never receive anything, poll occasionally
-            let gotUpdate = false;
-            socket.on('bid_update', () => { gotUpdate = true; });
-            setTimeout(() => { if (!gotUpdate) initialFetch(); }, 4000);
+            socket.on('connect_error', ensurePolling);
+            socket.on('disconnect', ensurePolling);
+            setTimeout(() => { if (!gotUpdate) ensurePolling(); }, 4000);
         } catch (e) {
-            setInterval(initialFetch, 2000);
+            ensurePolling();
         }
     } else {
-        setInterval(initialFetch, 2000);
+        ensurePolling();
     }
 }
 
