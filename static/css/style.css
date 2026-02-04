@@ -958,12 +958,14 @@ body {
 }
 
 .auction-detail-grid {
-  background: var(--surface);
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: var(--radius);
-  padding: 22px;
-  box-shadow: var(--shadow-md);
+  /* Grid only — cards inside provide the rounded surfaces */
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
 }
+
 
 .auction-detail img {
   border-radius: var(--radius);
@@ -1063,16 +1065,26 @@ body.page-fade-in.page-fade-in-active{opacity:1;transition:opacity 220ms ease;}
 
 
 .page-card {
-  background: var(--surface);
-  border-radius: var(--radius-xl);
+  /* Layout-only wrapper: no extra card layer */
+  background: transparent;
+  border-radius: 0;
   padding: 22px;
   border: none;
   box-shadow: none;
 }
 
 
+
 @media (max-width: 900px){
-  .page-card{ padding: 16px; }
+  .page-card {
+  /* Layout-only wrapper: no extra card layer */
+  background: transparent;
+  border-radius: 0;
+  padding: 22px;
+  border: none;
+  box-shadow: none;
+}
+
 }
 
 .pill-link{

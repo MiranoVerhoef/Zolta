@@ -12,6 +12,8 @@ function setToday(inputId) {
     el.value = value;
 }
 </script>
+  </div>
+</div>
 {% endblock %}
 
 {% endblock %}
@@ -19,7 +21,8 @@ function setToday(inputId) {
 {% block precontent %}{% endblock %}
 
 {% block content %}
-<div class="admin-layout">
+<div class="admin-shell">
+  <div class="admin-layout">
     <aside class="admin-sidebar">
         <div class="logo">
             <span class="logo-icon"><img src="{{ url_for('static', filename='img/zolta-icon.png') }}" alt="Zolta" loading="lazy"></span>
