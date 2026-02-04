@@ -772,15 +772,6 @@ box-shadow: none;
 }
 
 /* Footer */
-.footer {
-    background: var(--surface);
-    border-top: 1px solid var(--border-color);
-    padding: 2rem 0;
-    margin-top: 4rem;
-    text-align: center;
-    color: var(--text-secondary);
-    font-size: 0.875rem;
-}
 
 /* Utilities */
 .text-center { text-align: center; }
@@ -835,18 +826,7 @@ html, body {
   height: 100%;
 }
 
-body {
-  /* space for fixed footer */
-  padding-bottom: 64px;
-}
 
-.footer {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 50;
-}
 
 /* Flash messages: keep them inside content area */
 .flash-wrapper {
@@ -931,19 +911,12 @@ body {
     border-radius: 999px;
 }
 
-.footer {
-    background: rgba(255,255,255,0.55);
-    border-top: 1px solid rgba(255,255,255,0.25);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-}
 
 
 /* --- Pretty layout overrides --- */
 body {
   background: var(--background);
-  padding-bottom: 110px; /* space for floating footer */
-}
+  }
 
 .auction-detail-grid {
   /* Grid only — cards inside provide the rounded surfaces */
@@ -959,66 +932,11 @@ body {
   border-radius: var(--radius);
 }
 
-.footer-pill{
-  position: fixed;
-  left: 50%;
-  bottom: 18px;
-  transform: translateX(-50%);
-  background: rgba(255,255,255,0.92);
-  border: 1px solid rgba(15,23,42,0.10);
-  box-shadow: none;
-  border-radius: 999px;
-  padding: 12px 18px;
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  backdrop-filter: blur(10px);
-  z-index: 50;
-}
 
-.lang-fab{
-  position: fixed;
-  top: 18px;
-  right: 18px;
-  z-index: 5000;
 
-  pointer-events: auto;
-}
 
-.lang-fab select{
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background: rgba(255,255,255,0.92);
-  border: 1px solid rgba(15,23,42,0.10);
-  box-shadow: var(--shadow);
-  border-radius: 999px;
-  padding: 12px 46px 12px 18px;
-  min-width: 92px;
-  font-size: 0.98rem;
-  font-weight: 600;
-  cursor: pointer;
-  backdrop-filter: blur(10px);
-}
 
-.lang-fab select:focus{
-  outline: none;
-  box-shadow: 0 0 0 4px rgba(37,99,235,0.15), var(--shadow);
-}
 
-.lang-fab form{
-  position: relative;
-}
-
-.lang-fab form::after{
-  content: "▾";
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
 
 /* Remove emoji-style spacing from headings */
 .section-title { gap: 8px; }

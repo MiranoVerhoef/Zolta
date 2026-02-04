@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Edit User' if user else 'New User' }} - Admin{% endblock %}
+{% block title %}{{ 'Bewerken Gebruiker' if user else 'Nieuw Gebruiker' }} - Admin{% endblock %}
 {% block precontent %}{% endblock %}
 {% block content %}
 <div class="admin-shell">
@@ -11,23 +11,23 @@
         </div>
         <ul class="admin-nav">
             <li><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
-            <li><a href="{{ url_for('admin_new_auction') }}">New Auction</a></li>
-            <li><a href="{{ url_for('admin_settings') }}">Settings</a></li>
-            <li><a href="{{ url_for('admin_users') }}" class="active">Users</a></li>
-            <li><a href="{{ url_for('index') }}">View Site</a></li>
-            <li><a href="{{ url_for('admin_logout') }}">Logout</a></li>
+            <li><a href="{{ url_for('admin_new_auction') }}">Nieuwe veiling</a></li>
+            <li><a href="{{ url_for('admin_settings') }}">Instellingen</a></li>
+            <li><a href="{{ url_for('admin_users') }}" class="active">Gebruikers</a></li>
+            <li><a href="{{ url_for('index') }}">Website bekijken</a></li>
+            <li><a href="{{ url_for('admin_logout') }}">Uitloggen</a></li>
         </ul>
     </aside>
 
     <main class="admin-main">
       {% include "_flashes.html" %}
       <div class="admin-header">
-        <h1>{{ 'Edit User' if user else 'New User' }}</h1>
+        <h1>{{ 'Bewerken Gebruiker' if user else 'Nieuw Gebruiker' }}</h1>
       </div>
 
       <form class="admin-form" method="post">
         <div class="form-group">
-          <label class="form-label">Username</label>
+          <label class="form-label">Gebruikername</label>
           <input class="form-input" type="text" name="username" value="{{ user.username if user else '' }}" {% if user %}disabled{% endif %} required>
         </div>
 
@@ -41,13 +41,13 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">{{ 'New Password (leave blank to keep)' if user else 'Password' }}</label>
+          <label class="form-label">{{ 'Nieuw Wachtwoord (leave blank to keep)' if user else 'Wachtwoord' }}</label>
           <input class="form-input" type="password" name="password" {% if not user %}required{% endif %}>
         </div>
 
         <div class="form-actions">
           <a class="btn btn-secondary" href="{{ url_for('admin_users') }}">Cancel</a>
-          <button class="btn btn-primary" type="submit">{{ 'Save' if user else 'Create' }}</button>
+          <button class="btn btn-primary" type="submit">{{ 'Opslaan' if user else 'Aanmaken' }}</button>
         </div>
       </form>
     </main>

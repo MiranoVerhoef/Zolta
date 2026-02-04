@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Settings - Admin{% endblock %}
+{% block title %}Instellingen - Admin{% endblock %}
 
 {% block precontent %}{% endblock %}
 
@@ -14,119 +14,50 @@
         </div>
         <ul class="admin-nav">
             <li><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
-            <li><a href="{{ url_for('admin_new_auction') }}">New Auction</a></li>
-            <li><a href="{{ url_for('admin_settings') }}" class="active">Settings</a></li>
+            <li><a href="{{ url_for('admin_new_auction') }}">Nieuwe veiling</a></li>
+            <li><a href="{{ url_for('admin_settings') }}" class="active">Instellingen</a></li>
             {% if session.get('admin_role','admin') == 'admin' %}
-            <li><a href="{{ url_for('admin_users') }}">Users</a></li>
+            <li><a href="{{ url_for('admin_users') }}">Gebruikers</a></li>
             {% endif %}
-            <li><a href="{{ url_for('index') }}">View Site</a></li>
-            <li><a href="{{ url_for('admin_logout') }}">Logout</a></li>
+            <li><a href="{{ url_for('index') }}">Website bekijken</a></li>
+            <li><a href="{{ url_for('admin_logout') }}">Uitloggen</a></li>
         </ul>
     </aside>
     
     <main class="admin-main">
         {% include "_flashes.html" %}
         <div class="admin-header">
-            <h1>Settings</h1>
+            <h1>Instellingen</h1>
         </div>
         
         <form class="admin-form" method="POST">
-            <h3 style="margin-bottom: 1rem;">General Settings</h3>
-            
-            <div class="form-group">
-                <label class="form-label" for="site_title">Site Title</label>
-                <input type="text" id="site_title" name="site_title" class="form-input"
-                       value="{{ settings.get('site_title', 'Internal Auction System') }}"
-                       placeholder="Internal Auction System">
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="site_description">Site Description</label>
-                <textarea id="site_description" name="site_description" class="form-input form-textarea"
-                          placeholder="Welcome message or description for the auction site">{{ settings.get('site_description', '') }}</textarea>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label" for="background_color">Background Color</label>
-                <input type="color" id="background_color" name="background_color" class="form-input"
-                       value="{{ settings.get('background_color', '#f6f7fb') }}">
-                <small class="help-text">Changes the site background (off-white recommended).</small>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label" for="language">Language</label>
-                <select id="language" name="language" class="form-input">
-                    <option value="en" {% if settings.get('language','en') != 'nl' %}selected{% endif %}>English</option>
-                    <option value="nl" {% if settings.get('language','en') == 'nl' %}selected{% endif %}>Nederlands</option>
-                </select>
-                <span class="form-hint">Changes the public site language.</span>
-            </div>
-
-            <h3 style="margin: 2rem 0 1rem;">Default Auction Settings</h3>
-            
-            <div class="form-group">
-                <label class="form-label" for="default_whitelisted_domains">Default Whitelisted Email Domains</label>
-                <input type="text" id="default_whitelisted_domains" name="default_whitelisted_domains" class="form-input"
-                       value="{{ settings.get('default_whitelisted_domains', '') }}"
-                       placeholder="company.com, partner.org">
-                <span class="form-hint">These domains will be pre-filled when creating new auctions. Comma-separated.</span>
-            </div>
-            
-            <h3 style="margin: 2rem 0 1rem;">📧 SMTP Email Settings</h3>
-            
-            <div class="form-group">
-                <label class="form-checkbox">
-                    <input type="checkbox" name="smtp_enabled" 
-                           {% if settings.get('smtp_enabled', 'false') == 'true' %}checked{% endif %}>
-                    <span>Enable SMTP Email Sending</span>
-                </label>
-                <span class="form-hint">Enable to send bid confirmations and winner notifications</span>
-            </div>
-            
-            <div class="form-row">
+            <h3 style="margin-bottom: 1rem;">Algemene instellingen</h3><div class="form-row">
                 <div class="form-group">
-                    <label class="form-label" for="smtp_host">SMTP Host</label>
-                    <input type="text" id="smtp_host" name="smtp_host" class="form-input"
-                           value="{{ settings.get('smtp_host', '') }}"
-                           placeholder="smtp.gmail.com">
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label" for="smtp_port">SMTP Port</label>
-                    <input type="number" id="smtp_port" name="smtp_port" class="form-input"
-                           value="{{ settings.get('smtp_port', '587') }}"
-                           placeholder="587">
-                    <span class="form-hint">Common: 587 (TLS), 465 (SSL), 25</span>
-                </div>
-            </div>
-            
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label" for="smtp_username">SMTP Username</label>
+                    <label class="form-label" for="smtp_username">SMTP Gebruikersnaam</label>
                     <input type="text" id="smtp_username" name="smtp_username" class="form-input"
                            value="{{ settings.get('smtp_username', '') }}"
                            placeholder="your-email@gmail.com">
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label" for="smtp_password">SMTP Password</label>
+                    <label class="form-label" for="smtp_password">SMTP Wachtwoord</label>
                     <input type="password" id="smtp_password" name="smtp_password" class="form-input"
                            value="{{ settings.get('smtp_password', '') }}"
-                           placeholder="App password or SMTP password">
-                    <span class="form-hint">For Gmail, use an App Password</span>
+                           placeholder="App-wachtwoord of SMTP-wachtwoord">
+                    <span class="form-hint">Voor Gmail: gebruik een App-wachtwoord</span>
                 </div>
             </div>
             
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label" for="smtp_from_email">From Email</label>
+                    <label class="form-label" for="smtp_from_email">Afzender e-mail</label>
                     <input type="email" id="smtp_from_email" name="smtp_from_email" class="form-input"
                            value="{{ settings.get('smtp_from_email', '') }}"
                            placeholder="noreply@yourcompany.com">
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label" for="smtp_from_name">From Name</label>
+                    <label class="form-label" for="smtp_from_name">Afzendernaam</label>
                     <input type="text" id="smtp_from_name" name="smtp_from_name" class="form-input"
                            value="{{ settings.get('smtp_from_name', 'Zolta') }}"
                            placeholder="Zolta">
@@ -137,27 +68,27 @@
                 <label class="form-checkbox">
                     <input type="checkbox" name="smtp_use_tls" 
                            {% if settings.get('smtp_use_tls', 'true') != 'false' %}checked{% endif %}>
-                    <span>Use TLS (recommended for port 587)</span>
+                    <span>TLS gebruiken (recommended for port 587)</span>
                 </label>
                 <span class="form-hint">Uncheck for SSL connections (port 465)</span>
             </div>
             
-            <button type="submit" class="btn btn-primary mt-2">Save Settings</button>
+            <button type="submit" class="btn btn-primary mt-2">Instellingen opslaan</button>
         </form>
         
-        <!-- Test Email Section -->
+        <!-- Test E-mail Section -->
         <div class="admin-form mt-2">
-            <h3>🧪 Test Email Configuration</h3>
+            <h3>🧪 Test E-mail Configuration</h3>
             <p style="color: var(--text-secondary); margin: 1rem 0;">
                 Send a test email to verify your SMTP settings are working correctly.
             </p>
             <form method="POST" action="{{ url_for('admin_test_email') }}" style="display: flex; gap: 1rem; align-items: flex-end;">
                 <div class="form-group" style="flex: 1; margin: 0;">
-                    <label class="form-label" for="test_email">Test Email Address</label>
+                    <label class="form-label" for="test_email">Test E-mail Address</label>
                     <input type="email" id="test_email" name="test_email" class="form-input"
                            placeholder="your-email@example.com" required>
                 </div>
-                <button type="submit" class="btn btn-secondary">Send Test Email</button>
+                <button type="submit" class="btn btn-secondary">Send Test E-mail</button>
             </form>
         </div>
         
@@ -168,24 +99,24 @@
                 <p><strong>Gmail:</strong></p>
                 <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
                     <li>Host: smtp.gmail.com</li>
-                    <li>Port: 587 (TLS) or 465 (SSL)</li>
-                    <li>Username: your Gmail address</li>
-                    <li>Password: <a href="https://myaccount.google.com/apppasswords" target="_blank">Generate App Password</a></li>
+                    <li>Poort: 587 (TLS) or 465 (SSL)</li>
+                    <li>Gebruikersnaam: your Gmail address</li>
+                    <li>Wachtwoord: <a href="https://myaccount.google.com/apppasswords" target="_blank">Generate App Wachtwoord</a></li>
                 </ul>
                 
                 <p><strong>Microsoft 365 / Outlook:</strong></p>
                 <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
                     <li>Host: smtp.office365.com</li>
-                    <li>Port: 587 (TLS)</li>
-                    <li>Username: your full email address</li>
+                    <li>Poort: 587 (TLS)</li>
+                    <li>Gebruikersnaam: your full email address</li>
                 </ul>
                 
                 <p><strong>SendGrid:</strong></p>
                 <ul style="margin-left: 1.5rem;">
                     <li>Host: smtp.sendgrid.net</li>
-                    <li>Port: 587 (TLS)</li>
-                    <li>Username: apikey</li>
-                    <li>Password: your SendGrid API key</li>
+                    <li>Poort: 587 (TLS)</li>
+                    <li>Gebruikersnaam: apikey</li>
+                    <li>Wachtwoord: your SendGrid API key</li>
                 </ul>
             </div>
         </div>
@@ -194,7 +125,7 @@
             <h3>System Information</h3>
             <p style="color: var(--text-secondary); margin-top: 1rem;">
                 <strong>Version:</strong> {{ app_version }}<br>
-                <strong>Admin User:</strong> {{ session.get('admin_username', 'Unknown') }}<br>
+                <strong>Admin Gebruiker:</strong> {{ session.get('admin_username', 'Unknown') }}<br>
                 <strong>SMTP Status:</strong> 
                 {% if settings.get('smtp_enabled', 'false') == 'true' %}
                     <span style="color: var(--success-color);">✓ Enabled</span>
@@ -204,9 +135,9 @@
             </p>
             
             <div class="alert alert-info mt-2">
-                <strong>Default Login:</strong><br>
-                Username: admin<br>
-                Password: Set via ADMIN_PASSWORD environment variable (default: admin123)
+                <strong>Default Inloggen:</strong><br>
+                Gebruikersnaam: admin<br>
+                Wachtwoord: Set via ADMIN_PASSWORD environment variable (default: admin123)
             </div>
         </div>
     </main>

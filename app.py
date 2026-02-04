@@ -12,7 +12,7 @@ from threading import Lock
 
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION', '1.3.2')
+APP_VERSION = os.environ.get('APP_VERSION', '1.3.3')
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
 
 from queue import Queue, Empty
@@ -346,9 +346,8 @@ def get_setting(key, default=None):
     return val
 
 def get_site_language():
-    settings = get_all_settings()
-    lang = (settings.get('language') or 'en').lower().strip()
-    return 'nl' if lang == 'nl' else 'en'
+    # Zolta is Dutch-only
+    return 'nl'
 
 TRANSLATIONS = {
     'en': {
@@ -437,16 +436,16 @@ TRANSLATIONS = {
 
 def t_for_lang(lang, key):
     lang = (lang or '').strip().lower()
-    if lang not in ("en", "nl"):
-        lang = get_site_language()
-    return (TRANSLATIONS.get(lang, {}).get(key) or TRANSLATIONS['en'].get(key, key))
+    if lang != 'nl':
+        lang = 'nl'
+    return (TRANSLATIONS.get(lang, {}).get(key) or key)
 
 
 @app.context_processor
 def inject_helpers():
     def t(key: str):
-        lang = get_site_language()
-        return (TRANSLATIONS.get(lang, {}).get(key) or TRANSLATIONS['en'].get(key, key))
+        # Dutch-only
+        return (TRANSLATIONS.get('nl', {}).get(key) or key)
 
     def t_for(lang: str, key: str):
         return t_for_lang(lang, key)
@@ -460,24 +459,10 @@ def inject_helpers():
         site_lang=get_site_language(),
         now=now,
         settings=get_all_settings(),
-        theme_background=get_setting('background_color', '#dcdcdc'),
+        theme_background='#dcdcdc',
         app_version=APP_VERSION
     )
 
-
-@app.post("/set-language")
-def set_language():
-    lang = (request.form.get("language") or "").lower().strip()
-    if lang not in ("en", "nl"):
-        lang = "nl"
-    s = Settings.query.filter_by(key="language").first()
-    if not s:
-        s = Settings(key="language", value=lang)
-        db.session.add(s)
-    else:
-        s.value = lang
-    db.session.commit()
-    return redirect(request.referrer or url_for("index"))
 
 def send_email(to_email, subject, html_body, text_body=None):
     """Send email via SMTP"""
@@ -795,7 +780,7 @@ Bid amount: €{amount:.2f}
             return jsonify({
                 'success': True,
                 'verification_required': True,
-                'message': TRANSLATIONS.get(get_site_language(), TRANSLATIONS['en']).get('verification_email_sent')
+                'message': TRANSLATIONS.get('nl', {}).get('verification_email_sent')
             }), 202
 
     # Create bid
@@ -1027,7 +1012,7 @@ def admin_new_auction():
             whitelisted_domains=request.form.get('whitelisted_domains', '').strip() or None,
             show_allowed_domains=request.form.get('show_allowed_domains') == 'on',
             notify_winner=request.form.get('notify_winner') == 'on',
-            language=(request.form.get('language') or 'nl').strip().lower(),
+            language='nl',
             is_active=True
         )
         
@@ -1112,10 +1097,9 @@ def admin_settings():
     if request.method == 'POST':
         # Update settings
         setting_keys = [
-            'site_title', 'site_description', 'language', 'default_whitelisted_domains',
-            'smtp_enabled', 'smtp_host', 'smtp_port', 'smtp_username', 
-            'smtp_password', 'smtp_from_email', 'smtp_from_name', 'smtp_use_tls',
-            'background_color'
+            'default_whitelisted_domains',
+            'smtp_enabled', 'smtp_host', 'smtp_port', 'smtp_username',
+            'smtp_password', 'smtp_from_email', 'smtp_from_name', 'smtp_use_tls'
         ]
         
         for key in setting_keys:

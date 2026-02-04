@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{% if auction %}Edit{% else %}Create{% endif %} Auction - Admin{% endblock %}
+{% block title %}{% if auction %}Bewerken{% else %}Aanmaken{% endif %} Auction - Admin{% endblock %}
 
 {% block precontent %}{% endblock %}
 
@@ -14,20 +14,20 @@
         </div>
         <ul class="admin-nav">
             <li><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
-            <li><a href="{{ url_for('admin_new_auction') }}" {% if not auction %}class="active"{% endif %}>New Auction</a></li>
-            <li><a href="{{ url_for('admin_settings') }}">Settings</a></li>
+            <li><a href="{{ url_for('admin_new_auction') }}" {% if not auction %}class="active"{% endif %}>Nieuwe veiling</a></li>
+            <li><a href="{{ url_for('admin_settings') }}">Instellingen</a></li>
             {% if session.get('admin_role','admin') == 'admin' %}
-            <li><a href="{{ url_for('admin_users') }}">Users</a></li>
+            <li><a href="{{ url_for('admin_users') }}">Gebruikers</a></li>
             {% endif %}
-            <li><a href="{{ url_for('index') }}">View Site</a></li>
-            <li><a href="{{ url_for('admin_logout') }}">Logout</a></li>
+            <li><a href="{{ url_for('index') }}">Website bekijken</a></li>
+            <li><a href="{{ url_for('admin_logout') }}">Uitloggen</a></li>
         </ul>
     </aside>
     
     <main class="admin-main">
         {% include "_flashes.html" %}
         <div class="admin-header">
-            <h1>{% if auction %}Edit Auction{% else %}Create New Auction{% endif %}</h1>
+            <h1>{% if auction %}Bewerken Auction{% else %}Aanmaken Nieuwe veiling{% endif %}</h1>
             <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">← Back</a>
         </div>
         
@@ -40,7 +40,7 @@
             </div>
             
             <div class="form-group">
-                <label class="form-label" for="description">Description *</label>
+                <label class="form-label" for="description">Beschrijving *</label>
                 <textarea id="description" name="description" class="form-input form-textarea" required
                           placeholder="Include details like specifications, condition, accessories included, etc.">{{ auction.description if auction else '' }}</textarea>
             </div>
@@ -59,7 +59,7 @@
             
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label" for="min_price">Starting Price (€) *</label>
+                    <label class="form-label" for="min_price">Startprijs (€) *</label>
                     <input type="number" id="min_price" name="min_price" class="form-input" 
                            step="0.01" min="0" required
                            value="{{ auction.min_price if auction else '' }}"
@@ -78,7 +78,7 @@
             
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label" for="min_bid_increment">Minimum Bid Increment (€) *</label>
+                    <label class="form-label" for="min_bid_increment">Minimale biedstap (€) *</label>
                     <input type="number" id="min_bid_increment" name="min_bid_increment" class="form-input" 
                            step="0.01" min="0.01" required
                            value="{{ auction.min_bid_increment if auction else '5.00' }}"
@@ -87,7 +87,7 @@
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label" for="max_bid_increment">Maximum Bid Increment (€)</label>
+                    <label class="form-label" for="max_bid_increment">Maximale biedstap (€)</label>
                     <input type="number" id="max_bid_increment" name="max_bid_increment" class="form-input" 
                            step="0.01" min="0"
                            value="{{ auction.max_bid_increment if auction and auction.max_bid_increment else '' }}"
@@ -98,7 +98,7 @@
             
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label" for="start_date">Start Date & Time *</label>
+                    <label class="form-label" for="start_date">Startdatum & Time *</label>
                     <div style="display:flex; gap:0.5rem; align-items:center;">
                         <input type="datetime-local" id="start_date" name="start_date" class="form-input" required
                                value="{{ auction.start_date.strftime('%Y-%m-%dT%H:%M') if auction else '' }}">
@@ -107,7 +107,7 @@
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label" for="end_date">End Date & Time *</label>
+                    <label class="form-label" for="end_date">Einddatum & Time *</label>
                     <div style="display:flex; gap:0.5rem; align-items:center;">
                         <input type="datetime-local" id="end_date" name="end_date" class="form-input" required
                                value="{{ auction.end_date.strftime('%Y-%m-%dT%H:%M') if auction else '' }}">
@@ -117,11 +117,11 @@
             </div>
             
             <div class="form-group">
-                <label class="form-label" for="whitelisted_domains">Whitelisted Email Domains</label>
+                <label class="form-label" for="whitelisted_domains">Whitelisted E-mail Domains</label>
                 <input type="text" id="whitelisted_domains" name="whitelisted_domains" class="form-input"
                        value="{{ auction.whitelisted_domains if auction and auction.whitelisted_domains else '' }}"
                        placeholder="company.com, partner.org">
-                <span class="form-hint">Comma-separated list of allowed email domains. Leave empty to allow all.</span>
+                <span class="form-hint">Komma-gescheiden lijst of allowed email domains. Leave empty to allow all.</span>
             </div>
             
             <div class="form-group">
@@ -138,22 +138,10 @@
                     <label class="form-checkbox">
                         <input type="checkbox" name="require_email_confirmation" 
                                {% if not auction or auction.require_email_confirmation %}checked{% endif %}>
-                        <span>Require email confirmation for bids</span>
+                        <span>E-mailbevestiging vereist voor biedingen</span>
                     </label>
                 </div>
-                    <div class="form-group">
-                        <label class="form-label">Auction Language</label>
-                        <select name="language" class="form-input">
-                            {% set cur_lang = (auction.language if auction else None) or 'nl' %}
-                            <option value="nl" {% if cur_lang=='nl' %}selected{% endif %}>Nederlands</option>
-                            <option value="en" {% if cur_lang=='en' %}selected{% endif %}>English</option>
-                        </select>
-                        <span class="form-hint">Used for bid confirmation and notification emails.</span>
-                    </div>
-
-                
-
-                <div class="form-group">
+<div class="form-group">
                     <label class="form-checkbox">
                         <input type="checkbox" name="notify_winner"
                                {% if not auction or auction.notify_winner %}checked{% endif %}>
@@ -175,7 +163,7 @@
             
             <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                 <button type="submit" class="btn btn-primary">
-                    {% if auction %}Update Auction{% else %}Create Auction{% endif %}
+                    {% if auction %}Update Auction{% else %}Aanmaken Auction{% endif %}
                 </button>
                 <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Cancel</a>
             </div>

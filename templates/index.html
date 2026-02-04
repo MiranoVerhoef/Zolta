@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Auctions - Zolta{% endblock %}
+{% block title %}Veilingen - Zolta{% endblock %}
 
 {% block content %}
 <div data-page="index" style="display:none"></div>
@@ -27,8 +27,8 @@
                     <p class="auction-card-description">{{ auction.description[:100] }}{% if auction.description|length > 100 %}...{% endif %}</p>
                     <div class="auction-card-price">€{{ "%.2f"|format(auction.current_price) }}</div>
                     <div class="auction-card-meta">
-                        <span class="auction-status active">Live</span>
-                        <span>{{ auction.bids|length }} bids</span>
+                        <span class="auction-status active">Actief</span>
+                        <span>{{ auction.bids|length }} biedingen</span>
                     </div>
                 </div>
             </a>
@@ -52,9 +52,9 @@
                 <div class="auction-card-body">
                     <h3 class="auction-card-title">{{ auction.title }}</h3>
                     <p class="auction-card-description">{{ auction.description[:100] }}{% if auction.description|length > 100 %}...{% endif %}</p>
-                    <div class="auction-card-price">Starting at €{{ "%.2f"|format(auction.min_price) }}</div>
+                    <div class="auction-card-price">Start vanaf €{{ "%.2f"|format(auction.min_price) }}</div>
                     <div class="auction-card-meta">
-                        <span class="auction-status upcoming">Starts {{ auction.start_date.strftime('%b %d') }}</span>
+                        <span class="auction-status upcoming">Start {{ auction.start_date.strftime('%d-%m') }}</span>
                     </div>
                 </div>
             </a>
@@ -81,7 +81,7 @@
                     <div class="auction-card-price">Sold for €{{ "%.2f"|format(auction.current_price) }}</div>
                     <div class="auction-card-meta">
                         <span class="auction-status ended">Ended</span>
-                        <span>{{ auction.bids|length }} bids</span>
+                        <span>{{ auction.bids|length }} biedingen</span>
                     </div>
                 </div>
             </a>

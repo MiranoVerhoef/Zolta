@@ -51,7 +51,7 @@ function updateCountdown(element, endDate) {
     const diff = endDate - now;
     
     if (diff <= 0) {
-        element.innerHTML = '<span class="countdown-ended">Auction Ended</span>';
+        element.innerHTML = '<span class="countdown-ended">Veiling afgelopen</span>';
         return;
     }
     
@@ -63,19 +63,19 @@ function updateCountdown(element, endDate) {
     element.innerHTML = `
         <div class="countdown-item">
             <span class="countdown-value">${days}</span>
-            <span class="countdown-label">Days</span>
+            <span class="countdown-label">Dagen</span>
         </div>
         <div class="countdown-item">
             <span class="countdown-value">${hours.toString().padStart(2, '0')}</span>
-            <span class="countdown-label">Hours</span>
+            <span class="countdown-label">Uur</span>
         </div>
         <div class="countdown-item">
             <span class="countdown-value">${minutes.toString().padStart(2, '0')}</span>
-            <span class="countdown-label">Minutes</span>
+            <span class="countdown-label">Minuten</span>
         </div>
         <div class="countdown-item">
             <span class="countdown-value">${seconds.toString().padStart(2, '0')}</span>
-            <span class="countdown-label">Seconds</span>
+            <span class="countdown-label">Seconden</span>
         </div>
     `;
 }
@@ -91,7 +91,7 @@ function initBidForms() {
         const submitBtn = bidForm.querySelector('button[type="submit"]');
         const originalText = submitBtn.textContent;
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Submitting...';
+        submitBtn.textContent = 'Bezig met verzenden...';
         
         const auctionId = bidForm.dataset.auctionId;
 
@@ -368,9 +368,13 @@ function initLiveBidRefresh() {
 
         const list = document.getElementById('recent-bids');
         if (list && Array.isArray(data.bids)) {
+            if (data.bids.length === 0) {
+                list.innerHTML = '<div class="empty-bids">Nog geen biedingen.</div>';
+                return;
+            }
             list.innerHTML = data.bids.map((b, idx) => {
                 const dt = new Date(b.created_at);
-                const ts = isNaN(dt) ? '' : dt.toLocaleString();
+                const ts = isNaN(dt) ? '' : dt.toLocaleString('nl-NL');
                 const winning = idx === 0 ? ' winning' : '';
                 return `<div class="bid-item${winning}"><div class="bid-meta"><strong>${escapeHtml(b.name)}</strong><span>${ts}</span></div><div class="bid-amount">€${Number(b.amount).toFixed(2)}</div></div>`;
             }).join('');

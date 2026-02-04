@@ -14,7 +14,7 @@
             <img src="{{ url_for('static', filename='uploads/' + auction.image_filename) }}" 
                  alt="{{ auction.title }}" class="auction-main-image">
             {% else %}
-            <div class="auction-main-image" style="display: flex; align-items: center; justify-content: center; font-size: 1rem; min-height: 300px; color: var(--text-secondary);">No image</div>
+            <div class="auction-main-image" style="display: flex; align-items: center; justify-content: center; font-size: 1rem; min-height: 300px; color: var(--text-secondary);">Geen afbeelding</div>
             {% endif %}
         </div>
             
@@ -23,12 +23,25 @@
                 <p class="auction-description">{{ auction.description }}</p>
             </div>
             
-            {% if bids %}
-            <div class="bid-history mt-2">
+                        <div class="bid-history mt-2">
                 <h3>{{ t('bid_history') }}</h3>
                 <div class="bid-list" id="recent-bids">
-                    {% for bid in bids %}
-                    <li class="bid-item {% if loop.first %}winning{% endif %}">
+                    {% if bids %}
+                        {% for bid in bids %}
+                        <div class="bid-item {% if loop.first %}winning{% endif %}">
+                            <div class="bid-meta">
+                                <strong>{{ bid.bidder_name }}</strong>
+                                <span>{{ bid.created_at.strftime('%d-%m-%Y %H:%M') }}</span>
+                            </div>
+                            <div class="bid-amount">€{{ "%.2f"|format(bid.amount) }}</div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-bids">Nog geen biedingen.</div>
+                    {% endif %}
+                </div>
+            </div>
+">
                         <div class="bidder-info">
                             <span class="bidder-name">{{ bid.bidder_name }}</span>
                             <span class="bid-time">{{ bid.created_at.strftime('%b %d, %Y at %H:%M') }}</span>
@@ -60,7 +73,7 @@
                 </div>
                 <div class="price-value" id="current-price">€{{ "%.2f"|format(auction.current_price) }}</div>
                 <div style="font-size: 0.875rem; opacity: 0.9; margin-top: 0.5rem;">
-                    <span id="bid-count">{{ auction.bids|length }}</span> bid{% if auction.bids|length != 1 %}s{% endif %}
+                    <span id="bid-count">{{ auction.bids|length }}</span> bieding{% if auction.bids|length != 1 %}en{% endif %}
                 </div>
             </div>
             
@@ -76,12 +89,12 @@
             
             <div class="auction-meta-grid">
                 <div class="meta-item">
-                    <div class="meta-label">Min Bid Increment</div>
+                    <div class="meta-label">Minimale biedstap</div>
                     <div class="meta-value">€{{ "%.2f"|format(auction.min_bid_increment) }}</div>
                 </div>
                 {% if auction.max_bid_increment %}
                 <div class="meta-item">
-                    <div class="meta-label">Max Bid Increment</div>
+                    <div class="meta-label">Maximale biedstap</div>
                     <div class="meta-value">€{{ "%.2f"|format(auction.max_bid_increment) }}</div>
                 </div>
                 {% endif %}
@@ -147,7 +160,7 @@
                     </div>
 
                     <button type="submit" class="btn btn-primary btn-block">
-                        Place Bid
+                        Bied plaatsen
                     </button>
                 </form>
             </div>
@@ -155,9 +168,9 @@
             <div class="alert alert-info mt-2">
                 <strong>Auction {{ t('ended') }}</strong><br>
                 {% if auction.highest_bidder %}
-                Winner: {{ auction.highest_bidder.bidder_name }} with €{{ "%.2f"|format(auction.highest_bidder.amount) }}
+                Winnaar: {{ auction.highest_bidder.bidder_name }} with €{{ "%.2f"|format(auction.highest_bidder.amount) }}
                 {% else %}
-                No bids were placed.
+                Er zijn geen biedingen geplaatst.
                 {% endif %}
             </div>
             {% endif %}
