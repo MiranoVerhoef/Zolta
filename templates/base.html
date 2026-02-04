@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Zolta{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v=app_version) }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/zolta-icon.png') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
-    <meta name="theme-color" content="#0b1020">
+    <meta name="theme-color" content="#f6f7fb">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/icon-192.png') }}">
 
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/zolta-icon.png') }}">
@@ -27,15 +27,7 @@
                 <a href="{{ url_for('admin_logout') }}">{{ t('logout') }}</a>
                 {% else %}
                 <a href="{{ url_for('admin_login') }}">Admin</a>
-                {% endif %}
-            
-                <form class="lang-switch" method="post" action="{{ url_for('set_language') }}">
-                    <select name="language" onchange="this.form.submit()" aria-label="Language">
-                        <option value="nl" {% if site_lang == 'nl' %}selected{% endif %}>NL</option>
-                        <option value="en" {% if site_lang == 'en' %}selected{% endif %}>EN</option>
-                    </select>
-                </form>
-            </nav>
+                {% endif %}</nav>
         </div>
     </header>
 
@@ -47,13 +39,19 @@
 {% block content %}{% endblock %}
     </main>
 
-    <footer class="footer">
-        <div class="container">
-            <p>Zolta &copy; {{ now().year if now is defined else 2024 }}</p>
-        </div>
-    </footer>
+    <footer class="footer-pill"><span>Zolta © 2026 - Verhoef</span></footer>
 
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js', v=app_version) }}"></script>
     {% block scripts %}{% endblock %}
+
+    <div class="lang-fab" aria-label="Language selector">
+        <form method="post" action="{{ url_for('set_language') }}">
+            <select name="language" onchange="this.form.submit()" aria-label="Language">
+                <option value="nl" {% if site_lang == 'nl' %}selected{% endif %}>NL</option>
+                <option value="en" {% if site_lang == 'en' %}selected{% endif %}>EN</option>
+            </select>
+        </form>
+    </div>
+
 </body>
 </html>

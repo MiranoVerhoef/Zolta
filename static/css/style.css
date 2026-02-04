@@ -932,3 +932,82 @@ body {
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
 }
+
+
+/* --- Pretty layout overrides --- */
+body {
+  background: var(--background);
+  padding-bottom: 110px; /* space for floating footer */
+}
+
+.auction-detail-grid {
+  background: var(--surface);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: var(--radius);
+  padding: 22px;
+  box-shadow: var(--shadow-md);
+}
+
+.auction-detail img {
+  border-radius: var(--radius);
+}
+
+.footer-pill{
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(15,23,42,0.10);
+  box-shadow: var(--shadow-lg);
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  backdrop-filter: blur(10px);
+  z-index: 50;
+}
+
+.lang-fab{
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 60;
+}
+
+.lang-fab select{
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(15,23,42,0.10);
+  box-shadow: var(--shadow);
+  border-radius: 999px;
+  padding: 10px 40px 10px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+
+.lang-fab select:focus{
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(37,99,235,0.15), var(--shadow);
+}
+
+.lang-fab form{
+  position: relative;
+}
+
+.lang-fab form::after{
+  content: "▾";
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Remove emoji-style spacing from headings */
+.section-title { gap: 8px; }

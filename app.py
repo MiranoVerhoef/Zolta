@@ -5,6 +5,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from functools import wraps
 import os
+
+# Build/version string used for cache-busting static assets
+APP_VERSION = os.environ.get('APP_VERSION', 'dev')
+
 import signal
 import sys
 import uuid
@@ -14,6 +18,10 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 app = Flask(__name__)
+
+@app.context_processor
+def inject_app_version():
+    return {'app_version': APP_VERSION}
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////app/instance/auctions.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -206,9 +214,9 @@ TRANSLATIONS = {
         'place_bid': 'Bod plaatsen',
         'verification_email_sent': 'Check je e-mail om je bod te bevestigen. Daarna hoef je 7 dagen niet opnieuw te verifiëren.',
         'homepage_title': 'Zolta Veilingen',
-        'live_auctions': '🔥 Live veilingen',
-        'upcoming_auctions': '⏰ Aankomende veilingen',
-        'recently_ended': '✅ Recent afgelopen',
+        'live_auctions': 'Live veilingen',
+        'upcoming_auctions': ' Aankomende veilingen',
+        'recently_ended': ' Recent afgelopen',
         'no_auctions_yet': 'Nog geen veilingen',
         'check_back_soon': 'Kom later terug voor nieuwe veilingen!',
     }
