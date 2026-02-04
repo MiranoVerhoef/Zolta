@@ -88,7 +88,7 @@ a:hover {
 .logo-icon {
     width: 36px;
     height: 36px;
-    background: var(--primary-color);
+    background: transparent;
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
@@ -97,6 +97,25 @@ a:hover {
     font-size: 1.25rem;
 }
 
+.logo-icon {
+    background: transparent;
+    padding: 0;
+}
+
+.logo-icon img {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    display: block;
+}
+
+
+.logo-icon-img {
+    width: 36px;
+    height: 36px;
+    display: block;
+    border-radius: var(--radius-sm);
+}
 .nav {
     display: flex;
     gap: 1.5rem;
@@ -418,7 +437,7 @@ a:hover {
 }
 
 .btn-primary {
-    background: var(--primary-color);
+    background: transparent;
     color: white;
 }
 

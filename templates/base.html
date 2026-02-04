@@ -5,14 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Zolta{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/zolta-icon.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/zolta-icon.png') }}">
     {% block head %}{% endblock %}
 </head>
 <body>
     <header class="header">
         <div class="container header-content">
             <a href="{{ url_for('index') }}" class="logo">
-                <span class="logo-icon">⚡</span>
+                <span class="logo-icon"><img src="{{ url_for('static', filename='img/zolta-icon.png') }}" alt="Zolta" loading="lazy"></span>
                 Zolta
             </a>
             <nav class="nav">
