@@ -776,3 +776,8 @@ a:hover {
         position: static;
     }
 }
+
+
+/* Flash messages: keep them at the top without breaking admin layout */
+.flash-wrapper{position:sticky;top:0;z-index:2000;padding:0.75rem 1rem;background:transparent;}
+.flash-inner{max-width:1200px;margin:0 auto;}

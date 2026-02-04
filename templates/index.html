@@ -3,6 +3,8 @@
 {% block title %}Auctions - Zolta{% endblock %}
 
 {% block content %}
+<div data-page="index" style="display:none"></div>
+
 <div class="container">
     <section class="hero">
         <h1>{{ t('homepage_title') }}</h1>
@@ -40,7 +42,7 @@
         <h2 class="section-title">{{ t('upcoming_auctions') }}</h2>
         <div class="auctions-grid">
             {% for auction in upcoming_auctions %}
-            <a href="{{ url_for('auction_detail', auction_id=auction.id) }}" class="auction-card">
+            <a href="{{ url_for('auction_detail', auction_id=auction.id) }}" class="auction-card" data-auction-start="{{ auction.start_date.isoformat() }}">
                 {% if auction.image_filename %}
                 <img src="{{ url_for('static', filename='uploads/' + auction.image_filename) }}" 
                      alt="{{ auction.title }}" class="auction-card-image">
