@@ -1,4 +1,8 @@
 /* Reset and Base Styles */
+html {
+    font-size: 13px; /* ~20% smaller UI */
+}
+
 *, *::before, *::after {
     box-sizing: border-box;
     margin: 0;
@@ -195,7 +199,7 @@ a:hover {
 
 .auction-card:hover {
     transform: translateY(-4px);
-    box-shadow: var(--shadow-lg);
+    box-shadow: none;
 }
 
 .auction-card-image {
@@ -559,9 +563,15 @@ box-shadow: none;
 
 /* Admin Styles */
 .admin-layout {
-    display: flex;
-    min-height: 100vh;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 0;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(15,23,42,0.06);
+  overflow: hidden;
 }
+
 
 .admin-sidebar {
     width: 250px;
@@ -715,7 +725,7 @@ box-shadow: none;
     background: var(--surface);
     padding: 2.5rem;
     border-radius: var(--radius);
-    box-shadow: var(--shadow-lg);
+    box-shadow: none;
     width: 100%;
     max-width: 400px;
 }
@@ -959,7 +969,7 @@ body {
   transform: translateX(-50%);
   background: rgba(255,255,255,0.92);
   border: 1px solid rgba(15,23,42,0.10);
-  box-shadow: var(--shadow-lg);
+  box-shadow: none;
   border-radius: 999px;
   padding: 12px 18px;
   font-size: 0.9rem;
@@ -1017,13 +1027,14 @@ body {
 .section-title { gap: 8px; }
 
 
-.auction-media-card{
+.auction-media-card {
   background: var(--surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
-  border: 1px solid rgba(15,23,42,0.06);
-  padding: 18px;
+  border-radius: var(--radius-xl);
+  padding: 16px;
+  border: none;
+  box-shadow: none;
 }
+
 
 .auction-media-card .auction-main-image{
   background: transparent;
@@ -1038,13 +1049,14 @@ body.page-fade-in{opacity:0;}
 body.page-fade-in.page-fade-in-active{opacity:1;transition:opacity 220ms ease;}
 
 
-.page-card{
+.page-card {
   background: var(--surface);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  border: 1px solid rgba(15,23,42,0.06);
   padding: 22px;
+  border: none;
+  box-shadow: none;
 }
+
 
 @media (max-width: 900px){
   .page-card{ padding: 16px; }
@@ -1056,7 +1068,7 @@ body.page-fade-in.page-fade-in-active{opacity:1;transition:opacity 220ms ease;}
   gap: 10px;
   background: rgba(255,255,255,0.92);
   border: 1px solid rgba(15,23,42,0.10);
-  box-shadow: var(--shadow-lg);
+  box-shadow: none;
   border-radius: 999px;
   padding: 12px 18px;
   font-weight: 600;
@@ -1064,3 +1076,5 @@ body.page-fade-in.page-fade-in-active{opacity:1;transition:opacity 220ms ease;}
   text-decoration: none;
 }
 .pill-link:hover{ color: var(--text-primary); transform: translateY(-1px); }
+
+.admin-shell{max-width: 1200px; margin: 28px auto; padding: 0 18px;}

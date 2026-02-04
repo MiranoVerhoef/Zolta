@@ -12,11 +12,14 @@
             Zolta Admin
         </div>
         <ul class="admin-nav">
-            <li><a href="{{ url_for('admin_dashboard') }}" class="active">📊 Dashboard</a></li>
-            <li><a href="{{ url_for('admin_new_auction') }}">➕ New Auction</a></li>
-            <li><a href="{{ url_for('admin_settings') }}">⚙️ Settings</a></li>
-            <li><a href="{{ url_for('index') }}">🌐 View Site</a></li>
-            <li><a href="{{ url_for('admin_logout') }}">🚪 Logout</a></li>
+            <li><a href="{{ url_for('admin_dashboard') }}" class="active">Dashboard</a></li>
+            <li><a href="{{ url_for('admin_new_auction') }}">New Auction</a></li>
+            <li><a href="{{ url_for('admin_settings') }}">Settings</a></li>
+            {% if session.get('admin_role','admin') == 'admin' %}
+            <li><a href=\"{{ url_for('admin_users') }}\">Users</a></li>
+            {% endif %}
+            <li><a href="{{ url_for('index') }}">View Site</a></li>
+            <li><a href="{{ url_for('admin_logout') }}">Logout</a></li>
         </ul>
     </aside>
     

@@ -12,11 +12,14 @@
             Zolta Admin
         </div>
         <ul class="admin-nav">
-            <li><a href="{{ url_for('admin_dashboard') }}">📊 Dashboard</a></li>
-            <li><a href="{{ url_for('admin_new_auction') }}">➕ New Auction</a></li>
-            <li><a href="{{ url_for('admin_settings') }}" class="active">⚙️ Settings</a></li>
-            <li><a href="{{ url_for('index') }}">🌐 View Site</a></li>
-            <li><a href="{{ url_for('admin_logout') }}">🚪 Logout</a></li>
+            <li><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
+            <li><a href="{{ url_for('admin_new_auction') }}">New Auction</a></li>
+            <li><a href="{{ url_for('admin_settings') }}" class="active">Settings</a></li>
+            {% if session.get('admin_role','admin') == 'admin' %}
+            <li><a href=\"{{ url_for('admin_users') }}\">Users</a></li>
+            {% endif %}
+            <li><a href="{{ url_for('index') }}">View Site</a></li>
+            <li><a href="{{ url_for('admin_logout') }}">Logout</a></li>
         </ul>
     </aside>
     
@@ -40,6 +43,13 @@
                 <label class="form-label" for="site_description">Site Description</label>
                 <textarea id="site_description" name="site_description" class="form-input form-textarea"
                           placeholder="Welcome message or description for the auction site">{{ settings.get('site_description', '') }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="background_color">Background Color</label>
+                <input type="color" id="background_color" name="background_color" class="form-input"
+                       value="{{ settings.get('background_color', '#f6f7fb') }}">
+                <small class="help-text">Changes the site background (off-white recommended).</small>
             </div>
 
             <div class="form-group">

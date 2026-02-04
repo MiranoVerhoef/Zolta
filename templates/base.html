@@ -7,13 +7,13 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v=app_version) }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/zolta-icon.png') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
-    <meta name="theme-color" content="#f6f7fb">
+    <meta name="theme-color" content="{{ theme_background }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/icon-192.png') }}">
 
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/zolta-icon.png') }}">
     {% block head %}{% endblock %}
 </head>
-<body>
+<body style="--background: {{ theme_background }};">
     <header class="header">
         <div class="container header-content">
             <a href="{{ url_for('index') }}" class="logo">
@@ -39,7 +39,7 @@
 {% block content %}{% endblock %}
     </main>
 
-    <footer class="footer-pill"><span>Zolta © 2026 - Verhoef</span></footer>
+    <footer class="footer-pill"><span>Zolta v{{ app_version }} © 2026 - Verhoef</span></footer>
 
     <script src="{{ url_for('static', filename='js/main.js', v=app_version) }}"></script>
     {% block scripts %}{% endblock %}

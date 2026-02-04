@@ -5,9 +5,43 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from functools import wraps
 import os
+import json
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION', 'dev')
+APP_VERSION = os.environ.get('APP_VERSION'
+CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
+
+def load_config_file():
+    try:
+        if os.path.exists(CONFIG_PATH):
+            with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+                return json.load(f) or {}
+    except Exception as e:
+        print(f"Config load warning: {e}")
+    return {}
+
+def write_config_file(settings_dict):
+    try:
+        os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+        tmp_path = CONFIG_PATH + ".tmp"
+        with open(tmp_path, 'w', encoding='utf-8') as f:
+            json.dump(settings_dict, f, indent=2, sort_keys=True)
+        os.replace(tmp_path, CONFIG_PATH)
+    except Exception as e:
+        print(f"Config write warning: {e}")
+
+def sync_settings_from_config():
+    cfg = load_config_file()
+    if not cfg:
+        return
+    for key, value in cfg.items():
+        setting = Settings.query.filter_by(key=key).first()
+        if not setting:
+            setting = Settings(key=key)
+            db.session.add(setting)
+        setting.value = '' if value is None else str(value)
+    db.session.commit()
+, '0.1.0')
 
 import signal
 import sys
@@ -37,6 +71,7 @@ class Admin(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.String(40), default='admin')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Settings(db.Model):
@@ -160,6 +195,14 @@ def get_all_settings():
     """Return settings dict from DB"""
     return {s.key: s.value for s in Settings.query.all()}
 
+
+def get_setting(key, default=None):
+    settings = get_all_settings()
+    val = settings.get(key)
+    if val is None or val == '':
+        return default
+    return val
+
 def get_site_language():
     settings = get_all_settings()
     lang = (settings.get('language') or 'en').lower().strip()
@@ -229,7 +272,7 @@ def inject_helpers():
         return TRANSLATIONS.get(lang, TRANSLATIONS['en']).get(key, key)
     def now():
         return datetime.now()
-    return dict(t=t, site_lang=get_site_language(), now=now)
+    return dict(t=t, site_lang=get_site_language(), now=now, settings=get_all_settings(), theme_background=get_setting('background_color', '#f6f7fb'))
 
 @app.post("/set-language")
 def set_language():
@@ -628,7 +671,7 @@ def auction_status(auction_id):
 
 # Admin Routes
 @app.route('/admin')
-@admin_required
+@staff_required
 def admin_dashboard():
     auctions = Auction.query.order_by(Auction.created_at.desc()).all()
     return render_template('admin/dashboard.html', auctions=auctions)
@@ -643,6 +686,7 @@ def admin_login():
         if admin and check_password_hash(admin.password_hash, password):
             session['admin_logged_in'] = True
             session['admin_username'] = username
+            session['admin_role'] = getattr(admin, 'role', 'admin')
             return redirect(url_for('admin_dashboard'))
         
         flash('Invalid credentials', 'error')
@@ -656,7 +700,7 @@ def admin_logout():
     return redirect(url_for('index'))
 
 @app.route('/admin/auction/new', methods=['GET', 'POST'])
-@admin_required
+@staff_required
 def admin_new_auction():
     if request.method == 'POST':
         # Handle file upload
@@ -699,7 +743,7 @@ def admin_new_auction():
     return render_template('admin/auction_form.html', auction=None)
 
 @app.route('/admin/auction/<int:auction_id>/edit', methods=['GET', 'POST'])
-@admin_required
+@staff_required
 def admin_edit_auction(auction_id):
     auction = Auction.query.get_or_404(auction_id)
     
@@ -741,7 +785,7 @@ def admin_edit_auction(auction_id):
     return render_template('admin/auction_form.html', auction=auction)
 
 @app.route('/admin/auction/<int:auction_id>/delete', methods=['POST'])
-@admin_required
+@staff_required
 def admin_delete_auction(auction_id):
     auction = Auction.query.get_or_404(auction_id)
     
@@ -766,13 +810,15 @@ def admin_auction_bids(auction_id):
 
 @app.route('/admin/settings', methods=['GET', 'POST'])
 @admin_required
+@admin_required
 def admin_settings():
     if request.method == 'POST':
         # Update settings
         setting_keys = [
             'site_title', 'site_description', 'language', 'default_whitelisted_domains',
             'smtp_enabled', 'smtp_host', 'smtp_port', 'smtp_username', 
-            'smtp_password', 'smtp_from_email', 'smtp_from_name', 'smtp_use_tls'
+            'smtp_password', 'smtp_from_email', 'smtp_from_name', 'smtp_use_tls',
+            'background_color'
         ]
         
         for key in setting_keys:
@@ -786,6 +832,10 @@ def admin_settings():
                 setting.value = 'true' if request.form.get(key) == 'on' else 'false'
             else:
                 setting.value = request.form.get(key, '')
+        
+        db.session.commit()
+        # Persist settings to config file for easy manual edits
+        write_config_file({s.key: s.value for s in Settings.query.all()})
         
         db.session.commit()
         flash('Settings saved!', 'success')
@@ -835,6 +885,13 @@ def ensure_sqlite_columns():
             cur.execute("ALTER TABLE auction ADD COLUMN ending_soon_notified_at DATETIME")
         if 'ended_notified_at' not in cols:
             cur.execute("ALTER TABLE auction ADD COLUMN ended_notified_at DATETIME")
+        
+        # Ensure Admin.role exists
+        cur.execute("PRAGMA table_info(admin)")
+        admin_cols = {row[1] for row in cur.fetchall()}
+        if 'role' not in admin_cols:
+            cur.execute("ALTER TABLE admin ADD COLUMN role VARCHAR(40) DEFAULT 'admin'")
+
         conn.commit()
         conn.close()
     except Exception as e:
@@ -864,6 +921,7 @@ def init_db():
         os.makedirs('/app/instance', exist_ok=True)
         db.create_all()
         ensure_db_schema()
+        sync_settings_from_config()
         
         # Ensure instance folder exists for persistent SQLite database
         
@@ -899,6 +957,61 @@ if os.environ.get('AUTO_INIT', 'true').lower() == 'true':
     except Exception as e:
         print(f"Scheduler start failed: {e}")
 
+
+
+@app.route('/admin/users')
+@admin_required
+def admin_users():
+    users = Admin.query.order_by(Admin.username.asc()).all()
+    return render_template('admin/users.html', users=users)
+
+@app.route('/admin/users/new', methods=['GET','POST'])
+@admin_required
+def admin_new_user():
+    if request.method == 'POST':
+        username = request.form.get('username','').strip()
+        password = request.form.get('password','').strip()
+        role = request.form.get('role','auction_creator').strip()
+        if not username or not password:
+            flash('Username and password are required', 'error')
+            return redirect(url_for('admin_new_user'))
+        if Admin.query.filter_by(username=username).first():
+            flash('User already exists', 'error')
+            return redirect(url_for('admin_new_user'))
+        u = Admin(username=username, password_hash=generate_password_hash(password), role=role)
+        db.session.add(u)
+        db.session.commit()
+        write_config_file({s.key: s.value for s in Settings.query.all()})
+        flash('User created', 'success')
+        return redirect(url_for('admin_users'))
+    return render_template('admin/user_form.html', user=None)
+
+@app.route('/admin/users/<int:user_id>/edit', methods=['GET','POST'])
+@admin_required
+def admin_edit_user(user_id):
+    user = Admin.query.get_or_404(user_id)
+    if request.method == 'POST':
+        user.role = request.form.get('role', user.role)
+        new_pw = request.form.get('password','').strip()
+        if new_pw:
+            user.password_hash = generate_password_hash(new_pw)
+        db.session.commit()
+        flash('User updated', 'success')
+        return redirect(url_for('admin_users'))
+    return render_template('admin/user_form.html', user=user)
+
+@app.post('/admin/users/<int:user_id>/delete')
+@admin_required
+def admin_delete_user(user_id):
+    user = Admin.query.get_or_404(user_id)
+    # prevent deleting yourself
+    if user.username == session.get('admin_username'):
+        flash('You cannot delete your own account', 'error')
+        return redirect(url_for('admin_users'))
+    db.session.delete(user)
+    db.session.commit()
+    flash('User deleted', 'success')
+    return redirect(url_for('admin_users'))
 if __name__ == '__main__':
     def _graceful_exit(signum, frame):
         print('Shutting down...')

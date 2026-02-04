@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Users - Admin{% endblock %}
+{% block precontent %}{% endblock %}
+{% block content %}
+<div class="admin-shell">
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+        <div class="logo">
+            <span class="logo-icon"><img src="{{ url_for('static', filename='img/zolta-icon.png') }}" alt="Zolta" loading="lazy"></span>
+            Zolta Admin
+        </div>
+        <ul class="admin-nav">
+            <li><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
+            <li><a href="{{ url_for('admin_new_auction') }}">New Auction</a></li>
+            <li><a href="{{ url_for('admin_settings') }}">Settings</a></li>
+            <li><a href="{{ url_for('admin_users') }}" class="active">Users</a></li>
+            <li><a href="{{ url_for('index') }}">View Site</a></li>
+            <li><a href="{{ url_for('admin_logout') }}">Logout</a></li>
+        </ul>
+    </aside>
+
+    <main class="admin-main">
+      {% include "_flashes.html" %}
+      <div class="admin-header">
+        <h1>Users</h1>
+        <a class="btn btn-primary" href="{{ url_for('admin_new_user') }}">New user</a>
+      </div>
+
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Role</th>
+              <th>Created</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+            <tr>
+              <td>{{ u.username }}</td>
+              <td>{{ u.role }}</td>
+              <td>{{ u.created_at.strftime('%Y-%m-%d') if u.created_at else '' }}</td>
+              <td style="text-align:right;">
+                <a class="btn btn-secondary btn-sm" href="{{ url_for('admin_edit_user', user_id=u.id) }}">Edit</a>
+                {% if u.username != session.get('admin_username') %}
+                <form method="post" action="{{ url_for('admin_delete_user', user_id=u.id) }}" style="display:inline;" onsubmit="return confirm('Delete this user?');">
+                  <button class="btn btn-danger btn-sm" type="submit">Delete</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}

@@ -1,5 +1,7 @@
 # Zolta
 
+**Version:** 0.1.0
+
 A sleek, modern auction platform for internal equipment sales. Perfect for organizations looking to auction off surplus computers, monitors, and other equipment.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
@@ -10,27 +12,11 @@ A sleek, modern auction platform for internal equipment sales. Perfect for organ
 
 ## Environment Variables
 
-These match the default `docker-compose.yml`:
+These match the included `docker-compose.yml`.
 
-- `SECRET_KEY` (required)  
-  A secure random string used for session cookies.
+- `SECRET_KEY` – Flask secret key (change in production)
+- `ADMIN_PASSWORD` – initial admin password (used only if no admin exists yet)
+- `DEBUG` – `true` / `false`
+- `TZ` – timezone inside the container (e.g. `Europe/Amsterdam`)
 
-- `ADMIN_PASSWORD` (required)  
-  Password for the `admin` user (username is always `admin`).
-
-- `DEBUG` (optional, default: `false`)  
-  Set to `true` to enable Flask debug behavior.
-
-- `TZ` (optional, default: `Europe/Amsterdam`)  
-  Timezone used for auction start/end times.
-
-Optional (not set in compose by default):
-
-- `ENABLE_NOTIFICATIONS` (optional, default: `false`)  
-  Enables email notifications (30 minutes before end + ended).
-
-- `AUTO_INIT` (optional, default: `true`)  
-  Auto-initialize the database on startup.
-
-- `APP_VERSION` (optional)  
-  Used for cache-busting static assets.
+Email settings are configured via **Admin → Settings** (SMTP + notifications).
