@@ -28,6 +28,13 @@
                 {% else %}
                 <a href="{{ url_for('admin_login') }}">Admin</a>
                 {% endif %}
+            
+                <form class="lang-switch" method="post" action="{{ url_for('set_language') }}">
+                    <select name="language" onchange="this.form.submit()" aria-label="Language">
+                        <option value="nl" {% if site_lang == 'nl' %}selected{% endif %}>NL</option>
+                        <option value="en" {% if site_lang == 'en' %}selected{% endif %}>EN</option>
+                    </select>
+                </form>
             </nav>
         </div>
     </header>

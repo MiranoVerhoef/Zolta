@@ -274,3 +274,24 @@ volumes:
   - ./uploads:/app/static/uploads
 ```
 
+
+
+## Persistent storage (important for upgrades)
+
+Zolta stores data in these container paths:
+
+- **Database (SQLite):** `/app/instance/auctions.db`
+- **Uploaded images:** `/app/static/uploads/`
+
+When using Docker, make sure both paths are persisted (volume or bind mount) so upgrades/redeploys keep your data.
+
+### Example (bind mounts)
+
+```yaml
+services:
+  zolta:
+    image: ghcr.io/miranoverhoef/zolta:latest
+    volumes:
+      - ./instance:/app/instance
+      - ./uploads:/app/static/uploads
+```

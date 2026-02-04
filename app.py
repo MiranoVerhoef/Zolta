@@ -222,6 +222,21 @@ def inject_helpers():
     def now():
         return datetime.now()
     return dict(t=t, site_lang=get_site_language(), now=now)
+
+@app.post("/set-language")
+def set_language():
+    lang = (request.form.get("language") or "").lower().strip()
+    if lang not in ("en", "nl"):
+        lang = "nl"
+    s = Settings.query.filter_by(key="language").first()
+    if not s:
+        s = Settings(key="language", value=lang)
+        db.session.add(s)
+    else:
+        s.value = lang
+    db.session.commit()
+    return redirect(request.referrer or url_for("index"))
+
 def send_email(to_email, subject, html_body, text_body=None):
     """Send email via SMTP"""
     smtp = get_smtp_settings()
@@ -817,15 +832,41 @@ def ensure_sqlite_columns():
     except Exception as e:
         print(f"SQLite migration skipped/failed: {e}")
 
+
+def ensure_db_schema():
+    """Lightweight SQLite schema migration for existing installs.
+    Flask-SQLAlchemy's create_all() won't add new columns to existing tables.
+    """
+    try:
+        engine = db.get_engine()
+    except Exception:
+        engine = db.engine
+    with engine.connect() as conn:
+        # Auction table columns
+        cols = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(auction)").fetchall()]
+        def add_col(name, ddl):
+            if name not in cols:
+                conn.exec_driver_sql(f"ALTER TABLE auction ADD COLUMN {ddl}")
+        add_col("notify_winner", "notify_winner BOOLEAN DEFAULT 1")
+        add_col("ending_soon_notified_at", "ending_soon_notified_at DATETIME")
+        add_col("ended_notified_at", "ended_notified_at DATETIME")
+
 def init_db():
     with app.app_context():
+        os.makedirs('/app/instance', exist_ok=True)
         db.create_all()
+        ensure_db_schema()
         
         # Ensure instance folder exists for persistent SQLite database
-        os.makedirs('/app/instance', exist_ok=True)
         
         # Create uploads folder
         os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+        # Default site language
+        if not Settings.query.filter_by(key='language').first():
+            db.session.add(Settings(key='language', value='nl'))
+            db.session.commit()
+
         
         # Create default admin if none exists
         if not Admin.query.first():
