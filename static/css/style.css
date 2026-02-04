@@ -861,14 +861,10 @@ body {
 
 
 
-/* ===== iOS-like rounded + glass theme (onlineip.nl-ish) ===== */
+/* ===== Rounded theme (light) ===== */
 body {
-    background: radial-gradient(1200px 600px at 20% 10%, rgba(255, 153, 204, 0.35), transparent 60%),
-                radial-gradient(900px 500px at 80% 15%, rgba(120, 200, 255, 0.30), transparent 55%),
-                radial-gradient(1100px 700px at 55% 90%, rgba(165, 120, 255, 0.22), transparent 60%),
-                #0b1020;
+    background: var(--background);
 }
-
 .container {
     padding-left: 1rem;
     padding-right: 1rem;
