@@ -8,7 +8,7 @@ import os
 import json
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION'
+APP_VERSION = os.environ.get('APP_VERSION', '0.1.0')
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
 
 def load_config_file():
