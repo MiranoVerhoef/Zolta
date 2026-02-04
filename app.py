@@ -41,7 +41,6 @@ def sync_settings_from_config():
             db.session.add(setting)
         setting.value = '' if value is None else str(value)
     db.session.commit()
-, '0.1.0')
 
 import signal
 import sys
