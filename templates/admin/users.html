@@ -23,29 +23,29 @@
       {% include "_flashes.html" %}
       <div class="admin-header">
         <h1>Gebruikers</h1>
-        <a class="btn btn-primary" href="{{ url_for('admin_new_user') }}">Nieuw user</a>
+        <a class="btn btn-primary" href="{{ url_for('admin_new_user') }}">Nieuwe gebruiker</a>
       </div>
 
       <div class="table-wrap">
         <table class="admin-table">
           <thead>
             <tr>
-              <th>Gebruikername</th>
-              <th>Role</th>
-              <th>Aanmakend</th>
-              <th style="text-align:right;">Actions</th>
+              <th>Gebruikersnaam</th>
+              <th>Rol</th>
+              <th>Aangemaakt</th>
+              <th style="text-align:right;">Acties</th>
             </tr>
           </thead>
           <tbody>
             {% for u in users %}
             <tr>
               <td>{{ u.username }}</td>
-              <td>{{ u.role }}</td>
-              <td>{{ u.created_at.strftime('%Y-%m-%d') if u.created_at else '' }}</td>
+              <td>{{ 'Admin' if u.role == 'admin' else 'Veilingbeheerder' }}</td>
+              <td>{{ u.created_at.strftime('%d-%m-%Y') if u.created_at else '' }}</td>
               <td style="text-align:right;">
                 <a class="btn btn-secondary btn-sm" href="{{ url_for('admin_edit_user', user_id=u.id) }}">Bewerken</a>
                 {% if u.username != session.get('admin_username') %}
-                <form method="post" action="{{ url_for('admin_delete_user', user_id=u.id) }}" style="display:inline;" onsubmit="return confirm('Verwijderen this user?');">
+                <form method="post" action="{{ url_for('admin_delete_user', user_id=u.id) }}" style="display:inline;" onsubmit="return confirm('Weet je zeker dat je deze gebruiker wilt verwijderen?');">
                   <button class="btn btn-danger btn-sm" type="submit">Verwijderen</button>
                 </form>
                 {% endif %}

@@ -23,39 +23,40 @@
             <li><a href="{{ url_for('admin_logout') }}">Uitloggen</a></li>
         </ul>
     </aside>
-    
+
     <main class="admin-main">
         {% include "_flashes.html" %}
         <div class="admin-header">
             <h1>Instellingen</h1>
         </div>
-        
+
         <form class="admin-form" method="POST">
-            <h3 style="margin-bottom: 1rem;">Algemene instellingen</h3><div class="form-row">
+            <h3 style="margin-bottom: 1rem;">E-mail (SMTP)</h3>
+            <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label" for="smtp_username">SMTP Gebruikersnaam</label>
+                    <label class="form-label" for="smtp_username">SMTP gebruikersnaam</label>
                     <input type="text" id="smtp_username" name="smtp_username" class="form-input"
                            value="{{ settings.get('smtp_username', '') }}"
-                           placeholder="your-email@gmail.com">
+                           placeholder="jij@voorbeeld.nl">
                 </div>
-                
+
                 <div class="form-group">
-                    <label class="form-label" for="smtp_password">SMTP Wachtwoord</label>
+                    <label class="form-label" for="smtp_password">SMTP wachtwoord</label>
                     <input type="password" id="smtp_password" name="smtp_password" class="form-input"
                            value="{{ settings.get('smtp_password', '') }}"
                            placeholder="App-wachtwoord of SMTP-wachtwoord">
-                    <span class="form-hint">Voor Gmail: gebruik een App-wachtwoord</span>
+                    <span class="form-hint">Voor Gmail: gebruik een app-wachtwoord</span>
                 </div>
             </div>
-            
+
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label" for="smtp_from_email">Afzender e-mail</label>
                     <input type="email" id="smtp_from_email" name="smtp_from_email" class="form-input"
                            value="{{ settings.get('smtp_from_email', '') }}"
-                           placeholder="noreply@yourcompany.com">
+                           placeholder="noreply@voorbeeld.nl">
                 </div>
-                
+
                 <div class="form-group">
                     <label class="form-label" for="smtp_from_name">Afzendernaam</label>
                     <input type="text" id="smtp_from_name" name="smtp_from_name" class="form-input"
@@ -63,83 +64,84 @@
                            placeholder="Zolta">
                 </div>
             </div>
-            
+
             <div class="form-group">
                 <label class="form-checkbox">
-                    <input type="checkbox" name="smtp_use_tls" 
+                    <input type="checkbox" name="smtp_use_tls"
                            {% if settings.get('smtp_use_tls', 'true') != 'false' %}checked{% endif %}>
-                    <span>TLS gebruiken (recommended for port 587)</span>
+                    <span>TLS gebruiken (aanbevolen voor poort 587)</span>
                 </label>
-                <span class="form-hint">Uncheck for SSL connections (port 465)</span>
+                <span class="form-hint">Vink uit voor SSL-verbindingen (poort 465).</span>
             </div>
-            
+
             <button type="submit" class="btn btn-primary mt-2">Instellingen opslaan</button>
         </form>
-        
+
         <!-- Test E-mail Section -->
         <div class="admin-form mt-2">
-            <h3>🧪 Test E-mail Configuration</h3>
+            <h3>🧪 Test e-mail configuratie</h3>
             <p style="color: var(--text-secondary); margin: 1rem 0;">
-                Send a test email to verify your SMTP settings are working correctly.
+                Stuur een test e-mail om te controleren of je SMTP-instellingen correct werken.
             </p>
             <form method="POST" action="{{ url_for('admin_test_email') }}" style="display: flex; gap: 1rem; align-items: flex-end;">
                 <div class="form-group" style="flex: 1; margin: 0;">
-                    <label class="form-label" for="test_email">Test E-mail Address</label>
+                    <label class="form-label" for="test_email">Test e-mailadres</label>
                     <input type="email" id="test_email" name="test_email" class="form-input"
-                           placeholder="your-email@example.com" required>
+                           placeholder="jij@voorbeeld.nl" required>
                 </div>
-                <button type="submit" class="btn btn-secondary">Send Test E-mail</button>
+                <button type="submit" class="btn btn-secondary">Verstuur test e-mail</button>
             </form>
         </div>
-        
+
         <!-- SMTP Examples -->
         <div class="admin-form mt-2">
-            <h3>📖 Common SMTP Configurations</h3>
+            <h3>📖 Veelgebruikte SMTP-instellingen</h3>
             <div style="color: var(--text-secondary); margin-top: 1rem; font-size: 0.875rem;">
                 <p><strong>Gmail:</strong></p>
                 <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
                     <li>Host: smtp.gmail.com</li>
-                    <li>Poort: 587 (TLS) or 465 (SSL)</li>
-                    <li>Gebruikersnaam: your Gmail address</li>
-                    <li>Wachtwoord: <a href="https://myaccount.google.com/apppasswords" target="_blank">Generate App Wachtwoord</a></li>
+                    <li>Poort: 587 (TLS) of 465 (SSL)</li>
+                    <li>Gebruikersnaam: je Gmail-adres</li>
+                    <li>Wachtwoord: app-wachtwoord genereren via je Google-account</li>
                 </ul>
-                
+
                 <p><strong>Microsoft 365 / Outlook:</strong></p>
                 <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
                     <li>Host: smtp.office365.com</li>
                     <li>Poort: 587 (TLS)</li>
-                    <li>Gebruikersnaam: your full email address</li>
+                    <li>Gebruikersnaam: je volledige e-mailadres</li>
                 </ul>
-                
+
                 <p><strong>SendGrid:</strong></p>
                 <ul style="margin-left: 1.5rem;">
                     <li>Host: smtp.sendgrid.net</li>
                     <li>Poort: 587 (TLS)</li>
                     <li>Gebruikersnaam: apikey</li>
-                    <li>Wachtwoord: your SendGrid API key</li>
+                    <li>Wachtwoord: je SendGrid API key</li>
                 </ul>
             </div>
         </div>
-        
+
         <div class="admin-form mt-2">
-            <h3>System Information</h3>
+            <h3>Systeeminformatie</h3>
             <p style="color: var(--text-secondary); margin-top: 1rem;">
-                <strong>Version:</strong> {{ app_version }}<br>
-                <strong>Admin Gebruiker:</strong> {{ session.get('admin_username', 'Unknown') }}<br>
-                <strong>SMTP Status:</strong> 
+                <strong>Versie:</strong> {{ app_version }}<br>
+                <strong>Admin gebruiker:</strong> {{ session.get('admin_username', 'Onbekend') }}<br>
+                <strong>SMTP status:</strong>
                 {% if settings.get('smtp_enabled', 'false') == 'true' %}
-                    <span style="color: var(--success-color);">✓ Enabled</span>
+                    <span style="color: var(--success-color);">✓ Ingeschakeld</span>
                 {% else %}
-                    <span style="color: var(--text-secondary);">○ Disabled</span>
+                    <span style="color: var(--text-secondary);">○ Uitgeschakeld</span>
                 {% endif %}
             </p>
-            
+
             <div class="alert alert-info mt-2">
-                <strong>Default Inloggen:</strong><br>
+                <strong>Standaard inloggen:</strong><br>
                 Gebruikersnaam: admin<br>
-                Wachtwoord: Set via ADMIN_PASSWORD environment variable (default: admin123)
+                Wachtwoord: stel in via de ADMIN_PASSWORD omgevingsvariabele (standaard: admin123)
             </div>
         </div>
     </main>
+  </div>
 </div>
 {% endblock %}

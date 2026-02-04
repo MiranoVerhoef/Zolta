@@ -128,7 +128,7 @@ function initBidForms() {
                 showMessage('error', data.error);
             }
         } catch (error) {
-            showMessage('error', 'An error occurred. Please try again.');
+            showMessage('error', 'Er ging iets mis. Probeer het opnieuw.');
             console.error(error);
         } finally {
             submitBtn.disabled = false;
@@ -183,7 +183,7 @@ function updateMinBid(currentPrice) {
         
         const hintEl = minBidInput.parentElement.querySelector('.form-hint');
         if (hintEl) {
-            hintEl.textContent = `Minimum bid: €${newMin}`;
+            hintEl.textContent = `Minimum bod: €${newMin}`;
         }
     }
 }
@@ -261,7 +261,8 @@ function initAutoRefresh() {
             if (data.status === 'ended') {
                 const bidForm = document.getElementById('bid-form');
                 if (bidForm) {
-                    bidForm.innerHTML = '<div class="alert alert-info">This auction has ended.</div>';
+                    bidForm.innerHTML = '<div class="alert alert-info">Deze veiling is afgelopen.</div>';
+                    // stop polling? (auto)
                 }
             }
         } catch (error) {
@@ -291,7 +292,7 @@ function formatDate(dateString) {
 
 // Confirm delete
 function confirmDelete(message) {
-    return confirm(message || 'Are you sure you want to delete this item?');
+    return confirm(message || 'Weet je zeker dat je dit wilt verwijderen?');
 }
 
 // Image preview for file upload
@@ -368,16 +369,28 @@ function initLiveBidRefresh() {
 
         const list = document.getElementById('recent-bids');
         if (list && Array.isArray(data.bids)) {
+            const header = `
+                <div class="bid-header" aria-hidden="true">
+                    <div>Naam</div>
+                    <div>Datum</div>
+                    <div class="text-right">Bod</div>
+                </div>`;
+
             if (data.bids.length === 0) {
-                list.innerHTML = '<div class="empty-bids">Nog geen biedingen.</div>';
-                return;
+                list.innerHTML = header + '<div class="empty-bids">Nog geen biedingen.</div>';
+            } else {
+                list.innerHTML = header + data.bids.map((b, idx) => {
+                    const dt = new Date(b.created_at);
+                    const ts = isNaN(dt) ? '' : dt.toLocaleString('nl-NL');
+                    const winning = idx === 0 ? ' winning' : '';
+                    return `
+                        <div class="bid-item${winning}">
+                            <div class="bid-name">${escapeHtml(b.name)}</div>
+                            <div class="bid-time">${escapeHtml(ts)}</div>
+                            <div class="bid-amount">€${Number(b.amount).toFixed(2)}</div>
+                        </div>`;
+                }).join('');
             }
-            list.innerHTML = data.bids.map((b, idx) => {
-                const dt = new Date(b.created_at);
-                const ts = isNaN(dt) ? '' : dt.toLocaleString('nl-NL');
-                const winning = idx === 0 ? ' winning' : '';
-                return `<div class="bid-item${winning}"><div class="bid-meta"><strong>${escapeHtml(b.name)}</strong><span>${ts}</span></div><div class="bid-amount">€${Number(b.amount).toFixed(2)}</div></div>`;
-            }).join('');
         }
 
         if (data.status === 'ended' && data.winner_name && data.notify_winner && !window.__zoltaWinnerShown) {

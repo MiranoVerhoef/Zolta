@@ -23,31 +23,38 @@
             <li><a href="{{ url_for('admin_logout') }}">Uitloggen</a></li>
         </ul>
     </aside>
-    
+
     <main class="admin-main">
         {% include "_flashes.html" %}
         <div class="admin-header">
             <div>
-                <h1>Biedingen for: {{ auction.title }}</h1>
+                <h1>Biedingen voor: {{ auction.title }}</h1>
                 <p style="color: var(--text-secondary); margin-top: 0.5rem;">
-                    Status: <span class="auction-status {{ auction.status }}">{{ auction.status }}</span>
-                    | Current Price: <strong>€{{ "%.2f"|format(auction.current_price) }}</strong>
-                    | Total Biedingen: <strong>{{ bids|length }}</strong>
+                    Status:
+                    <span class="auction-status {{ auction.status }}">
+                        {% if auction.status == 'active' %}Actief
+                        {% elif auction.status == 'upcoming' %}Aankomend
+                        {% elif auction.status == 'inactive' %}Inactief
+                        {% else %}Afgelopen
+                        {% endif %}
+                    </span>
+                    | Huidig bod: <strong>€{{ "%.2f"|format(auction.current_price) }}</strong>
+                    | Totaal biedingen: <strong>{{ bids|length }}</strong>
                 </p>
             </div>
-            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">← Back</a>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">← Terug</a>
         </div>
-        
+
         {% if bids %}
         <div class="table-container">
             <table class="table">
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>Bidder Naam</th>
+                        <th>Naam</th>
                         <th>E-mail</th>
-                        <th>Amount</th>
-                        <th>Date & Time</th>
+                        <th>Bedrag</th>
+                        <th>Datum & tijd</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -55,7 +62,7 @@
                     <tr {% if loop.first %}style="background: #f0fdf4;"{% endif %}>
                         <td>
                             {% if loop.first %}
-                            <span style="background: var(--success-color); color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">WINNER</span>
+                            <span style="background: var(--success-color); color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">WINNAAR</span>
                             {% else %}
                             {{ loop.index }}
                             {% endif %}
@@ -65,33 +72,33 @@
                             <a href="mailto:{{ bid.bidder_email }}">{{ bid.bidder_email }}</a>
                         </td>
                         <td><strong>€{{ "%.2f"|format(bid.amount) }}</strong></td>
-                        <td>{{ bid.created_at.strftime('%b %d, %Y at %H:%M:%S') }}</td>
+                        <td>{{ bid.created_at.strftime('%d-%m-%Y %H:%M:%S') }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-        
+
         {% if auction.status == 'ended' and bids %}
         <div class="admin-form mt-2" style="background: #f0fdf4; border: 2px solid var(--success-color);">
-            <h3 style="color: #166534;">🎉 Winnaar Information</h3>
+            <h3 style="color: #166534;">Winnaar informatie</h3>
             <p><strong>Naam:</strong> {{ bids[0].bidder_name }}</p>
             <p><strong>E-mail:</strong> <a href="mailto:{{ bids[0].bidder_email }}">{{ bids[0].bidder_email }}</a></p>
-            <p><strong>Winning Bid:</strong> €{{ "%.2f"|format(bids[0].amount) }}</p>
-            <p><strong>Bid Placed:</strong> {{ bids[0].created_at.strftime('%B %d, %Y at %H:%M') }}</p>
-            
-            <a href="mailto:{{ bids[0].bidder_email }}?subject=Congratulations! You won the auction for {{ auction.title }}&body=Hi {{ bids[0].bidder_name }},%0A%0ACongratulations! You have won the auction for {{ auction.title }} with your bid of €{{ '%.2f'|format(bids[0].amount) }}.%0A%0APlease reply to this email to arrange pickup/payment.%0A%0AThank you!" 
+            <p><strong>Winnend bod:</strong> €{{ "%.2f"|format(bids[0].amount) }}</p>
+            <p><strong>Bod geplaatst:</strong> {{ bids[0].created_at.strftime('%d-%m-%Y %H:%M') }}</p>
+
+            <a href="mailto:{{ bids[0].bidder_email }}?subject=Gefeliciteerd! Je hebt gewonnen: {{ auction.title }}&body=Hallo {{ bids[0].bidder_name }},%0A%0AGefeliciteerd! Je hebt de veiling {{ auction.title }} gewonnen met een bod van €{{ '%.2f'|format(bids[0].amount) }}.%0A%0ANeem alsjeblieft contact op om afhalen/betalen af te stemmen.%0A%0ABedankt!"
                class="btn btn-success mt-1">
-                📧 E-mail Winnaar
+                E-mail winnaar
             </a>
         </div>
         {% endif %}
-        
+
         {% else %}
         <div class="empty-state">
-            <div class="empty-state-icon">📋</div>
-            <h2>No Biedingen Yet</h2>
-            <p>This auction hasn't received any bids.</p>
+            <div class="empty-state-icon"></div>
+            <h2>Nog geen biedingen</h2>
+            <p>Deze veiling heeft nog geen biedingen ontvangen.</p>
         </div>
         {% endif %}
     </main>

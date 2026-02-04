@@ -4,6 +4,7 @@ from flask_socketio import SocketIO, join_room
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
+from urllib.parse import urlparse
 from functools import wraps
 import os
 import json
@@ -12,7 +13,7 @@ from threading import Lock
 
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION', '1.3.4')
+APP_VERSION = os.environ.get('APP_VERSION', '1.3.5')
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
 
 from queue import Queue, Empty
@@ -350,43 +351,6 @@ def get_site_language():
     return 'nl'
 
 TRANSLATIONS = {
-    'en': {
-        'auctions': 'Auctions',
-        'admin_panel': 'Admin Panel',
-        'admin': 'Admin',
-        'logout': 'Logout',
-        'back_to_auctions': 'Back to Auctions',
-        'description': 'Description',
-        'bid_history': 'Bid History (Top 10)',
-        'live_now': 'Live Now',
-        'starting_soon': 'Starting Soon',
-        'ended': 'Ended',
-        'final_price': 'Final Price',
-        'current_bid': 'Current Bid',
-        'starting_price': 'Starting Price',
-        'place_your_bid': 'Place Your Bid',
-        'your_name': 'Your Name',
-        'email_address': 'Email Address',
-        'bid_amount': 'Bid Amount (€)',
-        'place_bid': 'Place Bid',
-        'verification_email_sent': 'Check your email to confirm your bid. After confirming, you won\'t need to verify again for 7 days.',
-        'homepage_title': 'Zolta Auctions',
-        'live_auctions': 'Live Auctions',
-        'upcoming_auctions': 'Upcoming Auctions',
-        'recently_ended': 'Recently Ended',
-        'no_auctions_yet': 'No Auctions Yet',
-        'check_back_soon': 'Check back soon for upcoming auctions!',        'confirm_bid_subject': 'Confirm your bid - {title}',        'confirm_bid_heading': 'Confirm your bid',        'confirm_bid_cta': 'Click here to confirm your bid',        'confirm_bid_expires': 'This link expires in 30 minutes.',        'ending_soon_subject': 'Auction ending soon: {title}',        'ended_subject': 'Auction ended: {title}',        'winner_subject': 'You won: {title}',        'terms_label': 'When placing a bid you must comply with the terms',        'terms_text': 'We are not responsible for anything related to the auction or the goods being auctioned.',        'terms_required': 'You must accept the terms before placing a bid.',
-
-
-
-
-
-
-
-
-
-
-    },
     'nl': {
 
         'confirm_bid_subject': 'Bevestig je bod - {title}',
@@ -499,114 +463,249 @@ def send_email(to_email, subject, html_body, text_body=None):
     except Exception as e:
         return False, str(e)
 
+
+def get_site_url():
+    """Return the public base URL (no trailing slash) used for emails/assets.
+    Configure via env SITE_URL or DB setting key 'site_url'.
+    """
+    url = (os.environ.get('SITE_URL') or get_setting('site_url', '') or '').strip()
+    return url.rstrip('/')
+
+def base_url_from_external_url(external_url: str) -> str:
+    try:
+        p = urlparse(external_url)
+        if p.scheme and p.netloc:
+            return f"{p.scheme}://{p.netloc}"
+    except Exception:
+        pass
+    return ''
+
+def build_email_html(title: str, heading: str, intro_html: str, *, cta_text: str | None = None, cta_url: str | None = None, footer_html: str | None = None, base_url: str | None = None) -> str:
+    """Lightweight, email-client friendly HTML shell (table-based)."""
+    base_url = (base_url or '').rstrip('/')
+    logo_url = f"{base_url}/static/img/zolta-icon.png" if base_url else ''
+
+    # inline styles for compatibility
+    btn = ''
+    if cta_text and cta_url:
+        btn = f'''        <tr>          <td style="padding: 18px 0 6px 0;">            <a href="{cta_url}" style="display:inline-block;padding:12px 18px;border-radius:9999px;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:700;">{cta_text}</a>          </td>        </tr>'''
+
+    footer_html = footer_html or ''
+
+    logo_block = ''
+    if logo_url:
+        logo_block = f'''        <tr>          <td style="padding: 10px 0 4px 0;">            <img src="{logo_url}" width="48" height="48" alt="Zolta" style="display:block;border:0;outline:none;text-decoration:none;border-radius:10px;"/>          </td>        </tr>'''
+
+    return f'''<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{title}</title>
+</head>
+<body style="margin:0;padding:0;background:#f3f4f6;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">{title}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;">
+          <tr>
+            <td style="padding:22px 22px 18px 22px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                {logo_block}
+                <tr>
+                  <td style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:18px;font-weight:800;color:#111827;padding:10px 0 4px 0;">{heading}</td>
+                </tr>
+                <tr>
+                  <td style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:14px;line-height:1.5;color:#374151;">{intro_html}</td>
+                </tr>
+                {btn}
+                <tr>
+                  <td style="padding: 14px 0 0 0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:12px;line-height:1.5;color:#6b7280;">{footer_html}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+        <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:12px;color:#9ca3af;margin-top:14px;">Zolta</div>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>'''
+
 def _unique_bidder_emails(auction_id: int):
     bids = Bid.query.filter_by(auction_id=auction_id).all()
     return sorted({b.bidder_email.strip().lower() for b in bids if b.bidder_email})
 
 def check_and_send_auction_notifications():
-    """Send:
-    - 'Ending soon' emails 30 minutes before end (once)
-    - 'Ended' emails right after end (once), optionally including winner
+    """Send email notifications.
+
+    - 'Ending soon' emails: 30 minutes before end (once)
+    - 'Ended' emails: right after end (once)
+    - Winner email: sent once when the auction ends (if enabled)
     """
     now = datetime.now()
     soon_threshold = now + timedelta(minutes=30)
+    site_url = get_site_url()
 
-    # Ending soon (only once)
+    def _auction_link(a: 'Auction') -> str:
+        return f"{site_url}/auction/{a.id}" if site_url else ''
+
+    # --- Ending soon ---
     soon_auctions = Auction.query.filter(
         Auction.is_active == True,
+        Auction.start_date <= now,
         Auction.end_date > now,
         Auction.end_date <= soon_threshold,
         Auction.ending_soon_notified_at.is_(None)
     ).all()
 
     for auction in soon_auctions:
-        emails = _unique_bidder_emails(auction.id)
-        # Mark as processed even if no bidders (prevents repeated checks)
+        # mark first to avoid duplicates if sending takes time
         auction.ending_soon_notified_at = now
         db.session.commit()
 
+        emails = _unique_bidder_emails(auction.id)
         if not emails:
             continue
 
-        lang = getattr(auction, 'language', None) or get_site_language()
-        subject = t_for_lang(lang, 'ending_soon_subject').format(title=auction.title)
-        end_str = auction.end_date.strftime('%Y-%m-%d %H:%M')
+        end_str = auction.end_date.strftime('%d-%m-%Y %H:%M')
         current = auction.current_price
-        link = f"{site_url}/auction/{auction.id}" if site_url else ""
-        link_line = f'<p>You can view the auction here: <a href="{link}">{link}</a></p>' if link else ""
-        body = f"""<p>Your auction is ending soon.</p>
-        <p><strong>{auction.title}</strong></p>
-        <p>Ends at: <strong>{end_str}</strong></p>
-        <p>Current price: <strong>€{current:.2f}</strong></p>
-        {link_line}
+        link = _auction_link(auction)
+
+        intro = f"""
+            <p>De veiling <strong>{auction.title}</strong> eindigt binnen 30 minuten.</p>
+            <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;border-collapse:collapse;margin-top:12px;\">
+              <tr>
+                <td style=\"padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;\">
+                  <div style=\"font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;\">Huidig bod</div>
+                  <div style=\"font-size:20px;font-weight:800;color:#111827;\">€{current:.2f}</div>
+                  <div style=\"margin-top:6px;font-size:12px;color:#6b7280;\">Eindtijd: <strong>{end_str}</strong></div>
+                </td>
+              </tr>
+            </table>
         """
-        for email in emails:
-            send_email(email, subject, body, text_body=None)
 
-        # Notify the winner separately
-        if highest and highest.bidder_email:
-            w_subj = t_for_lang(lang, 'winner_subject').format(title=auction.title)
-            if lang == 'nl':
-                w_body = f"""<p>Gefeliciteerd {highest.bidder_name},</p>
-<p>Je hebt de veiling <strong>{auction.title}</strong> gewonnen met een bod van <strong>€{highest.amount:.2f}</strong>.</p>
-{link_line}
-"""
-            else:
-                w_body = f"""<p>Congratulations {highest.bidder_name},</p>
-<p>You won <strong>{auction.title}</strong> with a bid of <strong>€{highest.amount:.2f}</strong>.</p>
-{link_line}
-"""
-            send_email(highest.bidder_email, w_subj, w_body, text_body=None)
+        subject = t_for_lang('nl', 'ending_soon_subject').format(title=auction.title)
+        html = build_email_html(
+            title=subject,
+            heading='Veiling eindigt bijna',
+            intro_html=intro,
+            cta_text='Open veiling' if link else None,
+            cta_url=link if link else None,
+            footer_html='Je ontvangt deze mail omdat je eerder een bod hebt geplaatst op deze veiling.',
+            base_url=site_url
+        )
 
-    # Ended (only once)
+        text = f"""Veiling eindigt bijna
+
+Veiling: {auction.title}
+Eindtijd: {end_str}
+Huidig bod: €{current:.2f}
+
+{('Open veiling: ' + link) if link else ''}
+"""
+
+        for em in emails:
+            send_email(em, subject, html, text)
+
+    # --- Ended ---
     ended_auctions = Auction.query.filter(
         Auction.is_active == True,
-        Auction.end_date <= now,
+        Auction.end_date < now,
         Auction.ended_notified_at.is_(None)
     ).all()
 
     for auction in ended_auctions:
-        emails = _unique_bidder_emails(auction.id)
-
-        # Determine winner
-        highest = Bid.query.filter_by(auction_id=auction.id).order_by(Bid.amount.desc()).first()
-        winner_block = ""
-        if auction.notify_winner and highest:
-            winner_block = f"""<p><strong>Winner:</strong> {highest.bidder_name} ({highest.bidder_email})</p>
-            <p><strong>Winning bid:</strong> €{highest.amount:.2f}</p>"""
-
-        lang = getattr(auction, 'language', None) or get_site_language()
-        subject = t_for_lang(lang, 'ended_subject').format(title=auction.title)
-        end_str = auction.end_date.strftime('%Y-%m-%d %H:%M')
-        link = f"{site_url}/auction/{auction.id}" if site_url else ""
-        link_line = f'<p>View details: <a href="{link}">{link}</a></p>' if link else ""
-        body = f"""<p>The auction has ended.</p>
-        <p><strong>{auction.title}</strong></p>
-        <p>Ended at: <strong>{end_str}</strong></p>
-        {winner_block}
-        {link_line}
-        """
-
-        for email in emails:
-            send_email(email, subject, body, text_body=None)
-
-        # Notify the winner separately
-        if highest and highest.bidder_email:
-            w_subj = t_for_lang(lang, 'winner_subject').format(title=auction.title)
-            if lang == 'nl':
-                w_body = f"""<p>Gefeliciteerd {highest.bidder_name},</p>
-<p>Je hebt de veiling <strong>{auction.title}</strong> gewonnen met een bod van <strong>€{highest.amount:.2f}</strong>.</p>
-{link_line}
-"""
-            else:
-                w_body = f"""<p>Congratulations {highest.bidder_name},</p>
-<p>You won <strong>{auction.title}</strong> with a bid of <strong>€{highest.amount:.2f}</strong>.</p>
-{link_line}
-"""
-            send_email(highest.bidder_email, w_subj, w_body, text_body=None)
-
         auction.ended_notified_at = now
         db.session.commit()
+
+        bids = Bid.query.filter_by(auction_id=auction.id).order_by(Bid.amount.desc()).all()
+        highest = bids[0] if bids else None
+        winner_line_html = ''
+        winner_line_text = ''
+        if highest and auction.notify_winner:
+            winner_line_html = f"<p><strong>Winnaar:</strong> {highest.bidder_name} met €{highest.amount:.2f}</p>"
+            winner_line_text = f"Winnaar: {highest.bidder_name} met €{highest.amount:.2f}\n"
+
+        end_str = auction.end_date.strftime('%d-%m-%Y %H:%M')
+        final_price = auction.current_price
+        link = _auction_link(auction)
+
+        subject = t_for_lang('nl', 'ended_subject').format(title=auction.title)
+        intro = f"""
+            <p>De veiling <strong>{auction.title}</strong> is afgelopen.</p>
+            <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;border-collapse:collapse;margin-top:12px;\">
+              <tr>
+                <td style=\"padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;\">
+                  <div style=\"font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;\">Eindprijs</div>
+                  <div style=\"font-size:20px;font-weight:800;color:#111827;\">€{final_price:.2f}</div>
+                  <div style=\"margin-top:6px;font-size:12px;color:#6b7280;\">Eindtijd: <strong>{end_str}</strong></div>
+                </td>
+              </tr>
+            </table>
+            {winner_line_html}
+        """
+
+        html = build_email_html(
+            title=subject,
+            heading='Veiling afgelopen',
+            intro_html=intro,
+            cta_text='Bekijk veiling' if link else None,
+            cta_url=link if link else None,
+            footer_html='Bedankt voor het meedoen.',
+            base_url=site_url
+        )
+
+        text = f"""Veiling afgelopen
+
+Veiling: {auction.title}
+Eindtijd: {end_str}
+Eindprijs: €{final_price:.2f}
+{winner_line_text}
+{('Bekijk veiling: ' + link) if link else ''}
+"""
+
+        # send to all bidders (unique)
+        for em in sorted({b.bidder_email.strip().lower() for b in bids if b.bidder_email}):
+            send_email(em, subject, html, text)
+
+        # Winner email (separate)
+        if highest and auction.notify_winner and highest.bidder_email:
+            w_subject = t_for_lang('nl', 'winner_subject').format(title=auction.title)
+            w_intro = f"""
+                <p>Hallo {highest.bidder_name},</p>
+                <p><strong>Gefeliciteerd!</strong> Je hebt de veiling <strong>{auction.title}</strong> gewonnen.</p>
+                <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;border-collapse:collapse;margin-top:12px;\">
+                  <tr>
+                    <td style=\"padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;\">
+                      <div style=\"font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;\">Winnend bod</div>
+                      <div style=\"font-size:22px;font-weight:900;color:#111827;\">€{highest.amount:.2f}</div>
+                    </td>
+                  </tr>
+                </table>
+                <p style=\"margin-top:12px;\">Neem contact op met de veilinghouder om afhalen/betalen af te stemmen.</p>
+            """
+
+            w_html = build_email_html(
+                title=w_subject,
+                heading='Je hebt gewonnen!',
+                intro_html=w_intro,
+                cta_text='Bekijk veiling' if link else None,
+                cta_url=link if link else None,
+                footer_html='Bedankt voor het meedoen.',
+                base_url=site_url
+            )
+            w_text = f"""Je hebt gewonnen!
+
+Veiling: {auction.title}
+Winnend bod: €{highest.amount:.2f}
+
+Neem contact op met de veilinghouder om afhalen/betalen af te stemmen.
+{('Bekijk veiling: ' + link) if link else ''}
+"""
+            send_email(highest.bidder_email, w_subject, w_html, w_text)
 
 def start_notification_scheduler():
     if os.environ.get('ENABLE_NOTIFICATIONS', 'true').lower() != 'true':
@@ -677,7 +776,7 @@ def place_bid(auction_id):
     auction = Auction.query.get_or_404(auction_id)
     
     if not auction.is_running:
-        return jsonify({'success': False, 'error': 'This auction is not currently accepting bids.'}), 400
+        return jsonify({'success': False, 'error': 'Deze veiling accepteert momenteel geen biedingen.'}), 400
     
     data = request.json or {}
     name = data.get('name', '').strip()
@@ -686,33 +785,33 @@ def place_bid(auction_id):
     
     # Validation
     if not name or not email or not amount:
-        return jsonify({'success': False, 'error': 'Name, email, and bid amount are required.'}), 400
+        return jsonify({'success': False, 'error': 'Naam, e-mailadres en bodbedrag zijn verplicht.'}), 400
     
     try:
         amount = float(amount)
     except (ValueError, TypeError):
-        return jsonify({'success': False, 'error': 'Invalid bid amount.'}), 400
+        return jsonify({'success': False, 'error': 'Ongeldig bodbedrag.'}), 400
 
     # Email domain validation
     if auction.whitelisted_domains:
         if not validate_email_domain(email, auction.whitelisted_domains):
             allowed = auction.whitelisted_domains.replace(',', ', ')
-            return jsonify({'success': False, 'error': f'Email must be from one of these domains: {allowed}'}), 400
+            return jsonify({'success': False, 'error': f'E-mailadres moet eindigen op een van deze domeinen: {allowed}'}), 400
     
     # Bid amount validation
     current_price = auction.current_price
     min_bid = current_price + auction.min_bid_increment
     
     if amount < min_bid:
-        return jsonify({'success': False, 'error': f'Minimum bid is €{min_bid:.2f}'}), 400
+        return jsonify({'success': False, 'error': f'Minimum bod is €{min_bid:.2f}'}), 400
     
     if auction.max_bid_increment:
         max_bid = current_price + auction.max_bid_increment
         if amount > max_bid:
-            return jsonify({'success': False, 'error': f'Maximum bid is €{max_bid:.2f}'}), 400
+            return jsonify({'success': False, 'error': f'Maximum bod is €{max_bid:.2f}'}), 400
     
     if auction.max_price and amount > auction.max_price:
-        return jsonify({'success': False, 'error': f'Bid cannot exceed €{auction.max_price:.2f}'}), 400
+        return jsonify({'success': False, 'error': f'Het bod mag niet hoger zijn dan €{auction.max_price:.2f}'}), 400
     
     # Email confirmation flow (7-day remembered verification)
     if auction.require_email_confirmation:
@@ -743,21 +842,35 @@ def place_bid(auction_id):
             verify_url = url_for('verify_bid', token=token, _external=True)
             lang = getattr(auction, 'language', None) or get_site_language()
 
-            html_body = f"""
-                <h2>{t_for_lang(lang, 'confirm_bid_heading')}</h2>
-                <p>Hi {name},</p>
-                <p>{t_for_lang(lang, 'confirm_bid_heading')} - <strong>{auction.title}</strong>:</p>
-                <ul>
-                    <li>Bid amount: <strong>€{amount:.2f}</strong></li>
-                </ul>
-                <p><a href=\"{verify_url}\">{t_for_lang(lang, 'confirm_bid_cta')}</a></p>
-                <p>{t_for_lang(lang, 'confirm_bid_expires')}</p>
+            base_url = base_url_from_external_url(verify_url) or get_site_url()
+
+            intro_html = f"""
+                <p>Hallo {name},</p>
+                <p>Je staat op het punt om je bod te bevestigen voor <strong>{auction.title}</strong>.</p>
+                <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-top:12px;">
+                  <tr>
+                    <td style="padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;">
+                      <div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;">Bodbedrag</div>
+                      <div style="font-size:20px;font-weight:800;color:#111827;">€{amount:.2f}</div>
+                    </td>
+                  </tr>
+                </table>
             """
+
+            html_body = build_email_html(
+                title=t_for_lang(lang, 'confirm_bid_subject').format(title=auction.title),
+                heading=t_for_lang(lang, 'confirm_bid_heading'),
+                intro_html=intro_html,
+                cta_text=t_for_lang(lang, 'confirm_bid_cta'),
+                cta_url=verify_url,
+                footer_html=t_for_lang(lang, 'confirm_bid_expires'),
+                base_url=base_url
+            )
 
             text_body = f"""{t_for_lang(lang, 'confirm_bid_heading')}
 
-Auction: {auction.title}
-Bid amount: €{amount:.2f}
+Veiling: {auction.title}
+Bodbedrag: €{amount:.2f}
 
 {t_for_lang(lang, 'confirm_bid_cta')}: {verify_url}
 
@@ -775,7 +888,7 @@ Bid amount: €{amount:.2f}
 
             if not success:
                 # If SMTP isn't enabled/configured, we should not accept the bid silently
-                return jsonify({'success': False, 'error': f'Email confirmation is required, but sending email failed: {message}'}), 400
+                return jsonify({'success': False, 'error': f'E-mailbevestiging is vereist, maar verzenden van e-mail is mislukt: {message}'}), 400
 
             return jsonify({
                 'success': True,
@@ -801,7 +914,7 @@ Bid amount: €{amount:.2f}
     
     response = jsonify({
         'success': True, 
-        'message': 'Bid placed successfully!',
+        'message': 'Bod geplaatst!',
         'new_price': amount,
         'bid_id': bid.id
     })
@@ -843,11 +956,11 @@ def verify_bid(token):
     if auction.max_bid_increment:
         max_bid = current_price + auction.max_bid_increment
         if amount > max_bid:
-            flash(f'Your bid is now too high. Maximum bid is €{max_bid:.2f}. Please bid again.', 'error')
+            flash(f'Your bid is now too high. Maximum bod is €{max_bid:.2f}. Please bid again.', 'error')
             return redirect(url_for('auction_detail', auction_id=auction.id))
 
     if auction.max_price and amount > auction.max_price:
-        flash(f'Bid cannot exceed €{auction.max_price:.2f}. Please bid again.', 'error')
+        flash(f'Het bod mag niet hoger zijn dan €{auction.max_price:.2f}. Please bid again.', 'error')
         return redirect(url_for('auction_detail', auction_id=auction.id))
 
     bid = Bid(

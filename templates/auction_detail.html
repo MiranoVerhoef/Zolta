@@ -26,13 +26,16 @@
                 <div class="bid-history mt-2">
                     <h3>{{ t('bid_history') }}</h3>
                     <div class="bid-list" id="recent-bids">
+                        <div class="bid-header" aria-hidden="true">
+                            <div>Naam</div>
+                            <div>Datum</div>
+                            <div class="text-right">Bod</div>
+                        </div>
                         {% if bids %}
                             {% for bid in bids %}
                             <div class="bid-item {% if loop.first %}winning{% endif %}">
-                                <div class="bid-meta">
-                                    <strong>{{ bid.bidder_name }}</strong>
-                                    <span>{{ bid.created_at.strftime('%d-%m-%Y %H:%M') }}</span>
-                                </div>
+                                <div class="bid-name">{{ bid.bidder_name }}</div>
+                                <div class="bid-time">{{ bid.created_at.strftime('%d-%m-%Y %H:%M') }}</div>
                                 <div class="bid-amount">€{{ "%.2f"|format(bid.amount) }}</div>
                             </div>
                             {% endfor %}

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{% if auction %}Bewerken{% else %}Aanmaken{% endif %} Auction - Admin{% endblock %}
+{% block title %}{% if auction %}Veiling bewerken{% else %}Nieuwe veiling{% endif %} - Admin{% endblock %}
 
 {% block precontent %}{% endblock %}
 
@@ -23,149 +23,150 @@
             <li><a href="{{ url_for('admin_logout') }}">Uitloggen</a></li>
         </ul>
     </aside>
-    
+
     <main class="admin-main">
         {% include "_flashes.html" %}
         <div class="admin-header">
-            <h1>{% if auction %}Bewerken Auction{% else %}Aanmaken Nieuwe veiling{% endif %}</h1>
-            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">← Back</a>
+            <h1>{% if auction %}Veiling bewerken{% else %}Nieuwe veiling aanmaken{% endif %}</h1>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">← Terug</a>
         </div>
-        
+
         <form class="admin-form" method="POST" enctype="multipart/form-data">
             <div class="form-group">
-                <label class="form-label" for="title">Title *</label>
+                <label class="form-label" for="title">Titel *</label>
                 <input type="text" id="title" name="title" class="form-input" required
                        value="{{ auction.title if auction else '' }}"
-                       placeholder="Dell OptiPlex 7090 Desktop Computer">
+                       placeholder="Dell OptiPlex 7090 Desktop">
             </div>
-            
+
             <div class="form-group">
                 <label class="form-label" for="description">Beschrijving *</label>
                 <textarea id="description" name="description" class="form-input form-textarea" required
-                          placeholder="Include details like specifications, condition, accessories included, etc.">{{ auction.description if auction else '' }}</textarea>
+                          placeholder="Voeg details toe zoals specificaties, conditie, accessoires, etc.">{{ auction.description if auction else '' }}</textarea>
             </div>
-            
+
             <div class="form-group">
-                <label class="form-label" for="image">Image</label>
+                <label class="form-label" for="image">Afbeelding</label>
                 <input type="file" id="image" name="image" class="form-input" accept="image/*">
-                <span class="form-hint">Accepted formats: PNG, JPG, JPEG, GIF, WebP. Max 16MB.</span>
+                <span class="form-hint">Geaccepteerde formaten: PNG, JPG, JPEG, GIF, WebP. Max 16MB.</span>
                 {% if auction and auction.image_filename %}
-                <img src="{{ url_for('static', filename='uploads/' + auction.image_filename) }}" 
-                     class="current-image" id="image-preview" alt="Current image">
+                <img src="{{ url_for('static', filename='uploads/' + auction.image_filename) }}"
+                     class="current-image" id="image-preview" alt="Huidige afbeelding">
                 {% else %}
-                <img src="" class="current-image" id="image-preview" alt="Preview" style="display: none;">
+                <img src="" class="current-image" id="image-preview" alt="Voorbeeld" style="display: none;">
                 {% endif %}
             </div>
-            
+
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label" for="min_price">Startprijs (€) *</label>
-                    <input type="number" id="min_price" name="min_price" class="form-input" 
+                    <input type="number" id="min_price" name="min_price" class="form-input"
                            step="0.01" min="0" required
                            value="{{ auction.min_price if auction else '' }}"
                            placeholder="50.00">
                 </div>
-                
+
                 <div class="form-group">
-                    <label class="form-label" for="max_price">Maximum Price (€)</label>
-                    <input type="number" id="max_price" name="max_price" class="form-input" 
+                    <label class="form-label" for="max_price">Maximumprijs (€)</label>
+                    <input type="number" id="max_price" name="max_price" class="form-input"
                            step="0.01" min="0"
                            value="{{ auction.max_price if auction and auction.max_price else '' }}"
-                           placeholder="Leave empty for no limit">
-                    <span class="form-hint">Optional: Set a ceiling price</span>
+                           placeholder="Laat leeg voor geen limiet">
+                    <span class="form-hint">Optioneel: stel een maximumprijs in</span>
                 </div>
             </div>
-            
+
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label" for="min_bid_increment">Minimale biedstap (€) *</label>
-                    <input type="number" id="min_bid_increment" name="min_bid_increment" class="form-input" 
+                    <input type="number" id="min_bid_increment" name="min_bid_increment" class="form-input"
                            step="0.01" min="0.01" required
                            value="{{ auction.min_bid_increment if auction else '5.00' }}"
                            placeholder="5.00">
-                    <span class="form-hint">Minimum amount above current price for new bids</span>
+                    <span class="form-hint">Minimale verhoging boven het huidige bod</span>
                 </div>
-                
+
                 <div class="form-group">
                     <label class="form-label" for="max_bid_increment">Maximale biedstap (€)</label>
-                    <input type="number" id="max_bid_increment" name="max_bid_increment" class="form-input" 
+                    <input type="number" id="max_bid_increment" name="max_bid_increment" class="form-input"
                            step="0.01" min="0"
                            value="{{ auction.max_bid_increment if auction and auction.max_bid_increment else '' }}"
-                           placeholder="Leave empty for no limit">
-                    <span class="form-hint">Optional: Maximum amount above current price</span>
+                           placeholder="Laat leeg voor geen limiet">
+                    <span class="form-hint">Optioneel: maximale verhoging boven het huidige bod</span>
                 </div>
             </div>
-            
+
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label" for="start_date">Startdatum & Time *</label>
+                    <label class="form-label" for="start_date">Startdatum & tijd *</label>
                     <div style="display:flex; gap:0.5rem; align-items:center;">
                         <input type="datetime-local" id="start_date" name="start_date" class="form-input" required
                                value="{{ auction.start_date.strftime('%Y-%m-%dT%H:%M') if auction else '' }}">
-                        <button type="button" class="btn btn-secondary" onclick="setToday('start_date')">Today</button>
+                        <button type="button" class="btn btn-secondary" onclick="setToday('start_date')">Vandaag</button>
                     </div>
                 </div>
-                
+
                 <div class="form-group">
-                    <label class="form-label" for="end_date">Einddatum & Time *</label>
+                    <label class="form-label" for="end_date">Einddatum & tijd *</label>
                     <div style="display:flex; gap:0.5rem; align-items:center;">
                         <input type="datetime-local" id="end_date" name="end_date" class="form-input" required
                                value="{{ auction.end_date.strftime('%Y-%m-%dT%H:%M') if auction else '' }}">
-                        <button type="button" class="btn btn-secondary" onclick="setToday('end_date')">Today</button>
+                        <button type="button" class="btn btn-secondary" onclick="setToday('end_date')">Vandaag</button>
                     </div>
                 </div>
             </div>
-            
+
             <div class="form-group">
-                <label class="form-label" for="whitelisted_domains">Whitelisted E-mail Domains</label>
+                <label class="form-label" for="whitelisted_domains">Toegestane e-maildomeinen</label>
                 <input type="text" id="whitelisted_domains" name="whitelisted_domains" class="form-input"
                        value="{{ auction.whitelisted_domains if auction and auction.whitelisted_domains else '' }}"
-                       placeholder="company.com, partner.org">
-                <span class="form-hint">Komma-gescheiden lijst of allowed email domains. Leave empty to allow all.</span>
+                       placeholder="bedrijf.nl, partner.org">
+                <span class="form-hint">Komma-gescheiden lijst van toegestane domeinen. Laat leeg om alles toe te staan.</span>
             </div>
-            
+
             <div class="form-group">
                 <label class="form-checkbox">
-                    <input type="checkbox" name="show_allowed_domains" 
+                    <input type="checkbox" name="show_allowed_domains"
                            {% if not auction or auction.show_allowed_domains %}checked{% endif %}>
-                    <span>Show allowed domains to bidders</span>
+                    <span>Toon toegestane domeinen aan bieders</span>
                 </label>
-                <span class="form-hint">When enabled, bidders will see which email domains are allowed. Disable to hide this information.</span>
+                <span class="form-hint">Wanneer ingeschakeld zien bieders welke domeinen zijn toegestaan. Zet uit om dit te verbergen.</span>
             </div>
-            
+
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-checkbox">
-                        <input type="checkbox" name="require_email_confirmation" 
+                        <input type="checkbox" name="require_email_confirmation"
                                {% if not auction or auction.require_email_confirmation %}checked{% endif %}>
                         <span>E-mailbevestiging vereist voor biedingen</span>
                     </label>
                 </div>
-<div class="form-group">
+
+                <div class="form-group">
                     <label class="form-checkbox">
                         <input type="checkbox" name="notify_winner"
                                {% if not auction or auction.notify_winner %}checked{% endif %}>
-                        <span>Include winner in "auction ended" email</span>
+                        <span>Stuur winnaar een e-mail wanneer de veiling eindigt</span>
                     </label>
-                    <span class="form-help">If disabled, bidders will still be notified that the auction ended, but without winner details.</span>
+                    <span class="form-help">Als uitgeschakeld krijgen bieders nog steeds een e-mail dat de veiling is afgelopen, maar de winnaar krijgt geen aparte winnaarmail.</span>
                 </div>
-    
+
                 {% if auction %}
                 <div class="form-group">
                     <label class="form-checkbox">
-                        <input type="checkbox" name="is_active" 
+                        <input type="checkbox" name="is_active"
                                {% if auction.is_active %}checked{% endif %}>
-                        <span>Auction is active</span>
+                        <span>Veiling is actief</span>
                     </label>
                 </div>
                 {% endif %}
             </div>
-            
+
             <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                 <button type="submit" class="btn btn-primary">
-                    {% if auction %}Update Auction{% else %}Aanmaken Auction{% endif %}
+                    {% if auction %}Opslaan{% else %}Veiling aanmaken{% endif %}
                 </button>
-                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Cancel</a>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Annuleren</a>
             </div>
         </form>
     </main>

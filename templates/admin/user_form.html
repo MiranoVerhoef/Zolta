@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Bewerken Gebruiker' if user else 'Nieuw Gebruiker' }} - Admin{% endblock %}
+{% block title %}{{ 'Gebruiker bewerken' if user else 'Nieuwe gebruiker' }} - Admin{% endblock %}
 {% block precontent %}{% endblock %}
 {% block content %}
 <div class="admin-shell">
@@ -22,31 +22,31 @@
     <main class="admin-main">
       {% include "_flashes.html" %}
       <div class="admin-header">
-        <h1>{{ 'Bewerken Gebruiker' if user else 'Nieuw Gebruiker' }}</h1>
+        <h1>{{ 'Gebruiker bewerken' if user else 'Nieuwe gebruiker' }}</h1>
       </div>
 
       <form class="admin-form" method="post">
         <div class="form-group">
-          <label class="form-label">Gebruikername</label>
+          <label class="form-label">Gebruikersnaam</label>
           <input class="form-input" type="text" name="username" value="{{ user.username if user else '' }}" {% if user %}disabled{% endif %} required>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Role</label>
+          <label class="form-label">Rol</label>
           <select class="form-input" name="role">
             <option value="admin" {% if user and user.role=='admin' %}selected{% endif %}>Admin</option>
-            <option value="auction_creator" {% if (user and user.role=='auction_creator') or (not user) %}selected{% endif %}>Auction creator</option>
+            <option value="auction_creator" {% if (user and user.role=='auction_creator') or (not user) %}selected{% endif %}>Veilingbeheerder</option>
           </select>
-          <small class="help-text">Auction creator can create/edit auctions, but cannot change settings or manage users.</small>
+          <small class="help-text">Veilingbeheerder kan veilingen maken/bewerken, maar kan geen instellingen of gebruikers beheren.</small>
         </div>
 
         <div class="form-group">
-          <label class="form-label">{{ 'Nieuw Wachtwoord (leave blank to keep)' if user else 'Wachtwoord' }}</label>
+          <label class="form-label">{{ 'Nieuw wachtwoord (laat leeg om te behouden)' if user else 'Wachtwoord' }}</label>
           <input class="form-input" type="password" name="password" {% if not user %}required{% endif %}>
         </div>
 
         <div class="form-actions">
-          <a class="btn btn-secondary" href="{{ url_for('admin_users') }}">Cancel</a>
+          <a class="btn btn-secondary" href="{{ url_for('admin_users') }}">Annuleren</a>
           <button class="btn btn-primary" type="submit">{{ 'Opslaan' if user else 'Aanmaken' }}</button>
         </div>
       </form>

@@ -1,18 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Inloggen - Auction System</title>
+    <title>Admin inloggen - Zolta</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="login-page">
     <div class="login-card">
         <div class="logo">
             <span class="logo-icon"><img src="{{ url_for('static', filename='img/zolta-icon.png') }}" alt="Zolta" loading="lazy"></span>
-            Admin Inloggen
+            Admin inloggen
         </div>
-        
+
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         {% for category, message in messages %}
@@ -20,23 +20,23 @@
         {% endfor %}
         {% endif %}
         {% endwith %}
-        
+
         <form method="POST">
             <div class="form-group">
-                <label class="form-label" for="username">Gebruikername</label>
+                <label class="form-label" for="username">Gebruikersnaam</label>
                 <input type="text" id="username" name="username" class="form-input" required autofocus>
             </div>
-            
+
             <div class="form-group">
                 <label class="form-label" for="password">Wachtwoord</label>
                 <input type="password" id="password" name="password" class="form-input" required>
             </div>
-            
+
             <button type="submit" class="btn btn-primary btn-block">Inloggen</button>
         </form>
-        
+
         <div class="text-center mt-2">
-            <a href="{{ url_for('index') }}">← Back to Veilingen</a>
+            <a href="{{ url_for('index') }}">← Terug naar veilingen</a>
         </div>
     </div>
 </body>

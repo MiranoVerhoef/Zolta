@@ -27,7 +27,7 @@
                     <p class="auction-card-description">{{ auction.description[:100] }}{% if auction.description|length > 100 %}...{% endif %}</p>
                     <div class="auction-card-price">€{{ "%.2f"|format(auction.current_price) }}</div>
                     <div class="auction-card-meta">
-                        <span class="auction-status active">Actief</span>
+                        <span class="auction-status active">Nu live</span>
                         <span>{{ auction.bids|length }} biedingen</span>
                     </div>
                 </div>
@@ -78,9 +78,9 @@
                 <div class="auction-card-body">
                     <h3 class="auction-card-title">{{ auction.title }}</h3>
                     <p class="auction-card-description">{{ auction.description[:100] }}{% if auction.description|length > 100 %}...{% endif %}</p>
-                    <div class="auction-card-price">Sold for €{{ "%.2f"|format(auction.current_price) }}</div>
+                    <div class="auction-card-price">Verkocht voor €{{ "%.2f"|format(auction.current_price) }}</div>
                     <div class="auction-card-meta">
-                        <span class="auction-status ended">Ended</span>
+                        <span class="auction-status ended">Afgelopen</span>
                         <span>{{ auction.bids|length }} biedingen</span>
                     </div>
                 </div>

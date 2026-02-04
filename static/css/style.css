@@ -255,6 +255,12 @@ a:hover {
     color: var(--text-secondary);
 }
 
+/* Make 'Nu live' more visible on cards */
+.auction-card-meta .auction-status.active {
+    font-size: 0.9rem;
+    padding: 0.35rem 0.95rem;
+}
+
 .auction-status {
     display: inline-flex;
     align-items: center;
@@ -279,6 +285,12 @@ a:hover {
 .auction-status.ended {
     background: #f1f5f9;
     color: #475569;
+}
+
+
+.auction-info .auction-status {
+    font-size: 0.95rem;
+    padding: 0.4rem 1rem;
 }
 
 .auction-status::before {
@@ -354,7 +366,7 @@ box-shadow: none;
 .auction-meta-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1rem;
+    gap: 1.25rem;
     margin-bottom: 1.5rem;
 }
 
@@ -492,46 +504,84 @@ box-shadow: none;
 }
 
 .bid-list {
-    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.bid-header {
+    display: grid;
+    grid-template-columns: 1fr 180px 120px;
+    gap: 1rem;
+    padding: 0 1rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .bid-item {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr 180px 120px;
+    gap: 1rem;
     align-items: center;
-    padding: 1rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.bid-item:last-child {
-    border-bottom: none;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
 }
 
 .bid-item.winning {
     background: #f0fdf4;
+    border-color: #86efac;
 }
 
-.bidder-info {
-    display: flex;
-    flex-direction: column;
-}
-
-.bidder-name {
+.bid-name {
     font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .bid-time {
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     color: var(--text-secondary);
 }
 
 .bid-amount {
-    font-size: 1.25rem;
+    text-align: right;
+    font-size: 1.1rem;
     font-weight: 700;
     color: var(--primary-color);
 }
 
+.empty-bids {
+    padding: 1rem;
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+}
+
+@media (max-width: 560px) {
+    .bid-header { display: none; }
+
+    .bid-item {
+        grid-template-columns: 1fr auto;
+        grid-template-areas:
+            "name amount"
+            "date amount";
+        gap: 0.25rem 1rem;
+        align-items: start;
+    }
+
+    .bid-name { grid-area: name; }
+    .bid-time { grid-area: date; font-size: 0.75rem; }
+    .bid-amount { grid-area: amount; }
+}
+
 /* Messages / Alerts */
+
 .alert {
     padding: 1rem 1.5rem;
     border-radius: var(--radius-sm);
@@ -734,8 +784,8 @@ box-shadow: none;
 .countdown {
     display: flex;
     justify-content: center;
-    gap: 1rem;
-    margin-top: 1rem;
+    gap: 1.2rem;
+    margin: 1rem 0 1.5rem;
 }
 
 .countdown-item {

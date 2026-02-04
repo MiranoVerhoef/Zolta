@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Admin Dashboard{% endblock %}
+{% block title %}Dashboard - Admin{% endblock %}
 
 {% block precontent %}{% endblock %}
 
@@ -23,26 +23,26 @@
             <li><a href="{{ url_for('admin_logout') }}">Uitloggen</a></li>
         </ul>
     </aside>
-    
+
     <main class="admin-main">
         {% include "_flashes.html" %}
         <div class="admin-header">
             <h1>Veilingen</h1>
-            <a href="{{ url_for('admin_new_auction') }}" class="btn btn-primary">+ Aanmaken Auction</a>
+            <a href="{{ url_for('admin_new_auction') }}" class="btn btn-primary">+ Nieuwe veiling</a>
         </div>
-        
+
         {% if auctions %}
         <div class="table-container">
             <table class="table">
                 <thead>
                     <tr>
-                        <th>Image</th>
-                        <th>Title</th>
-                        <th>Current Price</th>
+                        <th>Afbeelding</th>
+                        <th>Titel</th>
+                        <th>Huidig bod</th>
                         <th>Biedingen</th>
                         <th>Status</th>
-                        <th>Dates</th>
-                        <th>Actions</th>
+                        <th>Data</th>
+                        <th>Acties</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -50,7 +50,7 @@
                     <tr>
                         <td>
                             {% if auction.image_filename %}
-                            <img src="{{ url_for('static', filename='uploads/' + auction.image_filename) }}" 
+                            <img src="{{ url_for('static', filename='uploads/' + auction.image_filename) }}"
                                  alt="{{ auction.title }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
                             {% else %}
                             <div style="width: 60px; height: 60px; background: var(--background); border-radius: 8px; display: flex; align-items: center; justify-content: center;">📦</div>
@@ -66,24 +66,24 @@
                         <td>
                             <span class="auction-status {{ auction.status }}">
                                 {% if auction.status == 'active' %}Actief
-                                {% elif auction.status == 'upcoming' %}Upcoming
-                                {% elif auction.status == 'inactive' %}Inactive
-                                {% else %}Ended
+                                {% elif auction.status == 'upcoming' %}Aankomend
+                                {% elif auction.status == 'inactive' %}Inactief
+                                {% else %}Afgelopen
                                 {% endif %}
                             </span>
                         </td>
                         <td>
                             <small>
-                                Start: {{ auction.start_date.strftime('%b %d, %H:%M') }}<br>
-                                End: {{ auction.end_date.strftime('%b %d, %H:%M') }}
+                                Start: {{ auction.start_date.strftime('%d-%m %H:%M') }}<br>
+                                Eind: {{ auction.end_date.strftime('%d-%m %H:%M') }}
                             </small>
                         </td>
                         <td class="table-actions">
                             <a href="{{ url_for('auction_detail', auction_id=auction.id) }}" class="btn btn-secondary btn-sm" title="Bekijken">👁️</a>
                             <a href="{{ url_for('admin_auction_bids', auction_id=auction.id) }}" class="btn btn-secondary btn-sm" title="Biedingen bekijken">📋</a>
                             <a href="{{ url_for('admin_edit_auction', auction_id=auction.id) }}" class="btn btn-secondary btn-sm" title="Bewerken">✏️</a>
-                            <form action="{{ url_for('admin_delete_auction', auction_id=auction.id) }}" method="POST" style="display: inline;" 
-                                  onsubmit="return confirm('Are you sure you want to delete this auction? This cannot be undone.');">
+                            <form action="{{ url_for('admin_delete_auction', auction_id=auction.id) }}" method="POST" style="display: inline;"
+                                  onsubmit="return confirm('Weet je zeker dat je deze veiling wilt verwijderen? Dit kan niet ongedaan worden gemaakt.');">
                                 <button type="submit" class="btn btn-danger btn-sm" title="Verwijderen">🗑️</button>
                             </form>
                         </td>
@@ -95,8 +95,8 @@
         {% else %}
         <div class="empty-state">
             <div class="empty-state-icon">⚡</div>
-            <h2>No Veilingen Yet</h2>
-            <p>Aanmaken your first auction to get started.</p>
+            <h2>Nog geen veilingen</h2>
+            <p>Maak je eerste veiling aan om te beginnen.</p>
         </div>
         {% endif %}
     </main>

@@ -20,6 +20,8 @@ services:
       - ADMIN_PASSWORD=admin123
       - DEBUG=false
       - TZ=Europe/Amsterdam
+      # Used in emails (confirmation/winner) + logo links
+      - SITE_URL=http://localhost:5000
     volumes:
       # Persist database and uploads
       - zolta_data:/app/instance
