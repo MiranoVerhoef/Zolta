@@ -8,7 +8,7 @@ import os
 import json
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION', '0.1.0')
+APP_VERSION = os.environ.get('APP_VERSION', '1.2.0')
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
 
 def load_config_file():
@@ -931,6 +931,23 @@ def ensure_db_schema():
 def init_db():
     with app.app_context():
         os.makedirs('/app/instance', exist_ok=True)
+        # --- lightweight SQLite migrations (no Alembic) ---
+        try:
+            # Ensure admin.role column exists (for permission-based users)
+            db_path = '/app/instance/auctions.db'
+            try:
+                from sqlalchemy import text as _sql_text
+                # check columns
+                cols = db.session.execute(_sql_text("PRAGMA table_info(admin)")).fetchall()
+                col_names = [c[1] for c in cols] if cols else []
+                if 'role' not in col_names:
+                    db.session.execute(_sql_text("ALTER TABLE admin ADD COLUMN role VARCHAR(32) DEFAULT 'admin'"))
+                    db.session.commit()
+            except Exception:
+                db.session.rollback()
+        except Exception:
+            pass
+
         db.create_all()
         ensure_db_schema()
         sync_settings_from_config()
