@@ -2,6 +2,8 @@
 
 {% block title %}Admin Dashboard - Auction System{% endblock %}
 
+{% block precontent %}{% endblock %}
+
 {% block content %}
 <div class="admin-layout">
     <aside class="admin-sidebar">
@@ -19,6 +21,7 @@
     </aside>
     
     <main class="admin-main">
+        {% include "_flashes.html" %}
         <div class="admin-header">
             <h1>Auctions</h1>
             <a href="{{ url_for('admin_new_auction') }}" class="btn btn-primary">+ Create Auction</a>

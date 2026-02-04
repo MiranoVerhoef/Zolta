@@ -16,6 +16,8 @@ function setToday(inputId) {
 
 {% endblock %}
 
+{% block precontent %}{% endblock %}
+
 {% block content %}
 <div class="admin-layout">
     <aside class="admin-sidebar">
@@ -33,6 +35,7 @@ function setToday(inputId) {
     </aside>
     
     <main class="admin-main">
+        {% include "_flashes.html" %}
         <div class="admin-header">
             <h1>{% if auction %}Edit Auction{% else %}Create New Auction{% endif %}</h1>
             <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">← Back</a>

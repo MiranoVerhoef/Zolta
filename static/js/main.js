@@ -9,6 +9,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Auto-refresh auction status
     initAutoRefresh();
+
+    // PWA: register service worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/static/sw.js').catch(function(err) {
+            console.warn('ServiceWorker registration failed:', err);
+        });
+    }
 });
 
 // Countdown Timer
