@@ -16,7 +16,7 @@ html {
     --success-color: #22c55e;
     --warning-color: #f59e0b;
     --danger-color: #ef4444;
-    --background: #E6E9EE;
+    --background: #dcdcdc;
     --surface: #FFFFFF;
     --text-primary: #1F2937;
     --text-secondary: #606A77;
@@ -294,12 +294,7 @@ a:hover {
     padding: 2rem 0;
 }
 
-.auction-detail-grid {
-    display: grid;
-    grid-template-columns: 1fr 400px;
-    gap: 2rem;
-    align-items: start;
-}
+.auction-detail-grid{display:grid;grid-template-columns:1fr 360px;gap:28px;align-items:start;}
 
 @media (max-width: 900px) {
     .auction-detail-grid {
@@ -570,10 +565,10 @@ box-shadow: none;
   border: 0;
   border-radius: 0;
   overflow: visible;
-  padding: 1.25rem 0;
+  padding: 0;
 }
 
-.admin-sidebar {
+.admin-sidebar{
   position: sticky;
   top: 1.25rem;
   align-self: start;
@@ -613,14 +608,7 @@ box-shadow: none;
     color: white;
 }
 
-.admin-main {
-  background: var(--surface);
-  border-radius: var(--radius-xl);
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
-  padding: 1.5rem;
-  min-height: 60vh;
-}
+.admin-main{background:transparent;border:none;box-shadow:none;padding:1.5rem;min-height:calc(100vh - 4rem);}
 
 .admin-header {
     display: flex;
@@ -1064,14 +1052,7 @@ body.page-fade-in{opacity:0;}
 body.page-fade-in.page-fade-in-active{opacity:1;transition:opacity 220ms ease;}
 
 
-.page-card {
-  /* Layout-only wrapper: no extra card layer */
-  background: transparent;
-  border-radius: 0;
-  padding: 22px;
-  border: none;
-  box-shadow: none;
-}
+.page-card{padding:22px;}
 
 
 
@@ -1102,7 +1083,7 @@ body.page-fade-in.page-fade-in-active{opacity:1;transition:opacity 220ms ease;}
 }
 .pill-link:hover{ color: var(--text-primary); transform: translateY(-1px); }
 
-.admin-shell{max-width: 1200px; margin: 28px auto; padding: 0 18px;}
+.admin-shell{max-width:1200px;margin:28px auto;padding:18px;background:var(--surface);border-radius:var(--radius-xl);box-shadow:0 18px 50px rgba(15,23,42,0.08);border:1px solid rgba(15,23,42,0.06);}
 
 
 /* Admin pill sidebar link readability */

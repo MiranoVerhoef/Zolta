@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Settings - Admin  </div>
-</div>
-{% endblock %}
+{% block title %}Settings - Admin{% endblock %}
 
 {% block precontent %}{% endblock %}
 
@@ -195,7 +193,7 @@
         <div class="admin-form mt-2">
             <h3>System Information</h3>
             <p style="color: var(--text-secondary); margin-top: 1rem;">
-                <strong>Version:</strong> 1.1.0<br>
+                <strong>Version:</strong> {{ app_version }}<br>
                 <strong>Admin User:</strong> {{ session.get('admin_username', 'Unknown') }}<br>
                 <strong>SMTP Status:</strong> 
                 {% if settings.get('smtp_enabled', 'false') == 'true' %}

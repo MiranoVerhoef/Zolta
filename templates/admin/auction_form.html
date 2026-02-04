@@ -1,22 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{% if auction %}Edit{% else %}Create{% endif %} Auction - Admin
-{% block scripts %}
-<script>
-function setToday(inputId) {
-    const el = document.getElementById(inputId);
-    if (!el) return;
-    const d = new Date();
-    const pad = (n) => String(n).padStart(2, '0');
-    const value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    el.value = value;
-}
-</script>
-  </div>
-</div>
-{% endblock %}
-
-{% endblock %}
+{% block title %}{% if auction %}Edit{% else %}Create{% endif %} Auction - Admin{% endblock %}
 
 {% block precontent %}{% endblock %}
 

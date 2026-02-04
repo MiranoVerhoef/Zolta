@@ -8,7 +8,7 @@ import os
 import json
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION', '1.2.2')
+APP_VERSION = os.environ.get('APP_VERSION', '1.2.3')
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
 
 def load_config_file():
@@ -284,7 +284,7 @@ def inject_helpers():
         return TRANSLATIONS.get(lang, TRANSLATIONS['en']).get(key, key)
     def now():
         return datetime.now()
-    return dict(t=t, site_lang=get_site_language(), now=now, settings=get_all_settings(), theme_background=get_setting('background_color', '#f6f7fb'))
+    return dict(t=t, site_lang=get_site_language(), now=now, settings=get_all_settings(), theme_background=get_setting('background_color', '#dcdcdc'), app_version=APP_VERSION))
 
 @app.post("/set-language")
 def set_language():
