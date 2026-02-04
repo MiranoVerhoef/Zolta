@@ -985,7 +985,9 @@ body {
   border: 1px solid rgba(15,23,42,0.10);
   box-shadow: var(--shadow);
   border-radius: 999px;
-  padding: 10px 40px 10px 14px;
+  padding: 12px 46px 12px 18px;
+  min-width: 92px;
+  font-size: 0.98rem;
   font-weight: 600;
   cursor: pointer;
   backdrop-filter: blur(10px);
@@ -1034,3 +1036,31 @@ body {
 body.page-fade-out{opacity:0;transition:opacity 140ms ease;}
 body.page-fade-in{opacity:0;}
 body.page-fade-in.page-fade-in-active{opacity:1;transition:opacity 220ms ease;}
+
+
+.page-card{
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(15,23,42,0.06);
+  padding: 22px;
+}
+
+@media (max-width: 900px){
+  .page-card{ padding: 16px; }
+}
+
+.pill-link{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(15,23,42,0.10);
+  box-shadow: var(--shadow-lg);
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.pill-link:hover{ color: var(--text-primary); transform: translateY(-1px); }

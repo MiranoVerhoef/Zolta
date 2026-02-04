@@ -1,11 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}{{ auction.title }} - Zolta{% endblock %}
+{% block title %}{{ auction.title }} - Zolta    </div>
+</div>
+{% endblock %}
 
 {% block content %}
 <div class="container auction-detail">
-    <a href="{{ url_for('index') }}" class="btn btn-secondary mb-2">← {{ t('back_to_auctions') }}</a>
+    <a href="{{ url_for('index') }}" class="pill-link mb-3">← {{ t('back_to_auctions') }}</a>
     
+    <div class="page-card">
     <div class="auction-detail-grid" data-auction-id="{{ auction.id }}">
         <div>
             <div class="auction-media-card">
@@ -161,6 +164,8 @@
             </div>
             {% endif %}
         </div>
+    </div>
+</div>
     </div>
 </div>
 {% endblock %}
