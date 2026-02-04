@@ -10,21 +10,21 @@ html {
 }
 
 :root {
-    --primary-color: #2563eb;
-    --primary-hover: #1d4ed8;
-    --secondary-color: #64748b;
+    --primary-color: #5B6472;
+    --primary-hover: #4C5563;
+    --secondary-color: #6B7280;
     --success-color: #22c55e;
     --warning-color: #f59e0b;
     --danger-color: #ef4444;
-    --background: #f6f7fb;
-    --surface: #ffffff;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --border-color: rgba(15, 23, 42, 0.12);
+    --background: #E6E9EE;
+    --surface: #FFFFFF;
+    --text-primary: #1F2937;
+    --text-secondary: #606A77;
+    --border-color: rgba(31, 41, 55, 0.14);
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow: 0 8px 24px rgba(17, 24, 39, 0.10);
+    --shadow-md: 0 12px 30px rgba(17, 24, 39, 0.12);
+    --shadow-lg: 0 18px 48px rgba(17, 24, 39, 0.14);
     --radius: 22px;
     --radius-sm: 16px;
 }
@@ -1107,4 +1107,19 @@ body.page-fade-in.page-fade-in-active{opacity:1;transition:opacity 220ms ease;}
 .admin-sidebar a.active {
   background: rgba(59, 130, 246, 0.14);
   color: rgba(15, 23, 42, 0.96);
+}
+
+
+/* Branding palette readability tweaks */
+.admin-sidebar {
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-color);
+}
+.admin-sidebar a { color: var(--text-primary); }
+.admin-sidebar a:hover, .admin-sidebar a.active { background: rgba(91,100,114,0.10); }
+
+.navbar {
+  background: rgba(255,255,255,0.80);
+  border: 1px solid var(--border-color);
 }
