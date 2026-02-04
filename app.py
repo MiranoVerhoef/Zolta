@@ -166,6 +166,19 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+
+def staff_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'admin_logged_in' not in session:
+            return redirect(url_for('admin_login'))
+        role = session.get('admin_role', 'admin')
+        if role not in ('admin', 'auction_creator'):
+            flash('Access denied', 'error')
+            return redirect(url_for('admin_dashboard'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 def validate_email_domain(email, whitelisted_domains):
     if not whitelisted_domains:
         return True
