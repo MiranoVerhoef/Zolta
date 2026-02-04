@@ -714,4 +714,10 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, _graceful_exit)
 
     init_db()
-    app.run(host='0.0.0.0', port=5000, debug=os.environ.get('DEBUG', 'false').lower() == 'true', use_reloader=False, threaded=True)
+    app.run(
+    host="0.0.0.0",
+    port=5000,
+    debug=os.environ.get("DEBUG", "false").lower() == "true",
+    use_reloader=False,
+    threaded=True,
+)
