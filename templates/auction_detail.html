@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="container auction-detail">
-    <a href="{{ url_for('index') }}" class="btn btn-secondary mb-2">← Back to Auctions</a>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary mb-2">← {{ t('back_to_auctions') }}</a>
     
     <div class="auction-detail-grid" data-auction-id="{{ auction.id }}">
         <div>
@@ -16,13 +16,13 @@
             {% endif %}
             
             <div class="mt-2">
-                <h2>Description</h2>
+                <h2>{{ t('description') }}</h2>
                 <p class="auction-description">{{ auction.description }}</p>
             </div>
             
             {% if bids %}
             <div class="bid-history mt-2">
-                <h3>Bid History (Top 10)</h3>
+                <h3>{{ t('bid_history') }}</h3>
                 <ul class="bid-list">
                     {% for bid in bids %}
                     <li class="bid-item {% if loop.first %}winning{% endif %}">
@@ -40,9 +40,9 @@
         
         <div class="auction-info">
             <span class="auction-status {{ auction.status }}">
-                {% if auction.status == 'active' %}Live Now
-                {% elif auction.status == 'upcoming' %}Starting Soon
-                {% else %}Ended
+                {% if auction.status == 'active' %}{{ t('live_now') }}
+                {% elif auction.status == 'upcoming' %}{{ t('starting_soon') }}
+                {% else %}{{ t('ended') }}
                 {% endif %}
             </span>
             
@@ -50,9 +50,9 @@
             
             <div class="price-display">
                 <div class="price-label">
-                    {% if auction.status == 'ended' %}Final Price
-                    {% elif auction.bids|length > 0 %}Current Bid
-                    {% else %}Starting Price
+                    {% if auction.status == 'ended' %}{{ t('final_price') }}
+                    {% elif auction.bids|length > 0 %}{{ t('current_bid') }}
+                    {% else %}{{ t('starting_price') }}
                     {% endif %}
                 </div>
                 <div class="price-value" id="current-price">€{{ "%.2f"|format(auction.current_price) }}</div>
@@ -110,18 +110,18 @@
             
             {% if auction.status == 'active' %}
             <div class="bid-form">
-                <h3>Place Your Bid</h3>
+                <h3>{{ t('place_your_bid') }}</h3>
                 <div id="message-container"></div>
                 
                 <form id="bid-form" data-auction-id="{{ auction.id }}">
                     <div class="form-group">
-                        <label class="form-label" for="name">Your Name</label>
+                        <label class="form-label" for="name">{{ t('your_name') }}</label>
                         <input type="text" id="name" name="name" class="form-input" 
                                value="{{ saved_name }}" required placeholder="John Doe">
                     </div>
                     
                     <div class="form-group">
-                        <label class="form-label" for="email">Email Address</label>
+                        <label class="form-label" for="email">{{ t('email_address') }}</label>
                         <input type="email" id="email" name="email" class="form-input" 
                                value="{{ saved_email }}" required placeholder="john@company.com">
                         {% if auction.whitelisted_domains and auction.show_allowed_domains %}
@@ -132,7 +132,7 @@
                     </div>
                     
                     <div class="form-group">
-                        <label class="form-label" for="amount">Bid Amount (€)</label>
+                        <label class="form-label" for="amount">{{ t('bid_amount') }}</label>
                         {% set min_bid = auction.current_price + auction.min_bid_increment %}
                         <input type="number" id="amount" name="amount" class="form-input" 
                                min="{{ '%.2f'|format(min_bid) }}" 
@@ -150,7 +150,7 @@
             </div>
             {% elif auction.status == 'ended' %}
             <div class="alert alert-info mt-2">
-                <strong>Auction Ended</strong><br>
+                <strong>Auction {{ t('ended') }}</strong><br>
                 {% if auction.highest_bidder %}
                 Winner: {{ auction.highest_bidder.bidder_name }} with €{{ "%.2f"|format(auction.highest_bidder.amount) }}
                 {% else %}

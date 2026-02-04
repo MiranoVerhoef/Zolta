@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 import os
 import uuid
@@ -85,6 +85,26 @@ class Bid(db.Model):
     amount = db.Column(db.Float, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+
+class BidVerification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    auction_id = db.Column(db.Integer, db.ForeignKey('auction.id'), nullable=False)
+    bidder_name = db.Column(db.String(100), nullable=False)
+    bidder_email = db.Column(db.String(255), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used_at = db.Column(db.DateTime, nullable=True)
+
+    @property
+    def is_expired(self):
+        return datetime.utcnow() > self.expires_at
+
+    @property
+    def is_used(self):
+        return self.used_at is not None
+
 # Helper Functions
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -120,6 +140,81 @@ def get_smtp_settings():
         'use_tls': settings.get('smtp_use_tls', 'true').lower() == 'true'
     }
 
+
+def get_all_settings():
+    """Return settings dict from DB"""
+    return {s.key: s.value for s in Settings.query.all()}
+
+def get_site_language():
+    settings = get_all_settings()
+    lang = (settings.get('language') or 'en').lower().strip()
+    return 'nl' if lang == 'nl' else 'en'
+
+TRANSLATIONS = {
+    'en': {
+        'auctions': 'Auctions',
+        'admin_panel': 'Admin Panel',
+        'admin': 'Admin',
+        'logout': 'Logout',
+        'back_to_auctions': 'Back to Auctions',
+        'description': 'Description',
+        'bid_history': 'Bid History (Top 10)',
+        'live_now': 'Live Now',
+        'starting_soon': 'Starting Soon',
+        'ended': 'Ended',
+        'final_price': 'Final Price',
+        'current_bid': 'Current Bid',
+        'starting_price': 'Starting Price',
+        'place_your_bid': 'Place Your Bid',
+        'your_name': 'Your Name',
+        'email_address': 'Email Address',
+        'bid_amount': 'Bid Amount (€)',
+        'place_bid': 'Place Bid',
+        'verification_email_sent': 'Check your email to confirm your bid. After confirming, you won\'t need to verify again for 7 days.',
+        'homepage_title': 'Zolta Auctions',
+        'live_auctions': 'Live Auctions',
+        'upcoming_auctions': 'Upcoming Auctions',
+        'recently_ended': 'Recently Ended',
+        'no_auctions_yet': 'No Auctions Yet',
+        'check_back_soon': 'Check back soon for upcoming auctions!',
+    },
+    'nl': {
+        'auctions': 'Veilingen',
+        'admin_panel': 'Beheer',
+        'admin': 'Admin',
+        'logout': 'Uitloggen',
+        'back_to_auctions': 'Terug naar veilingen',
+        'description': 'Beschrijving',
+        'bid_history': 'Biedgeschiedenis (Top 10)',
+        'live_now': 'Nu live',
+        'starting_soon': 'Start binnenkort',
+        'ended': 'Afgelopen',
+        'final_price': 'Eindprijs',
+        'current_bid': 'Huidig bod',
+        'starting_price': 'Startprijs',
+        'place_your_bid': 'Plaats je bod',
+        'your_name': 'Je naam',
+        'email_address': 'E-mailadres',
+        'bid_amount': 'Bedrag (€)',
+        'place_bid': 'Bod plaatsen',
+        'verification_email_sent': 'Check je e-mail om je bod te bevestigen. Daarna hoef je 7 dagen niet opnieuw te verifiëren.',
+        'homepage_title': 'Zolta Veilingen',
+        'live_auctions': '🔥 Live veilingen',
+        'upcoming_auctions': '⏰ Aankomende veilingen',
+        'recently_ended': '✅ Recent afgelopen',
+        'no_auctions_yet': 'Nog geen veilingen',
+        'check_back_soon': 'Kom later terug voor nieuwe veilingen!',
+    }
+}
+
+@app.context_processor
+def inject_helpers():
+    def t(key):
+        lang = get_site_language()
+        return TRANSLATIONS.get(lang, TRANSLATIONS['en']).get(key, key)
+    def now():
+        return datetime.utcnow()
+    return dict(t=t, site_lang=get_site_language(), now=now)
 def send_email(to_email, subject, html_body, text_body=None):
     """Send email via SMTP"""
     smtp = get_smtp_settings()
@@ -237,6 +332,72 @@ def place_bid(auction_id):
     if auction.max_price and amount > auction.max_price:
         return jsonify({'success': False, 'error': f'Bid cannot exceed €{auction.max_price:.2f}'}), 400
     
+    # Email confirmation flow (7-day remembered verification)
+    if auction.require_email_confirmation:
+        verified_email = (request.cookies.get('verified_email') or '').strip().lower()
+        verified_until_raw = (request.cookies.get('verified_until') or '').strip()
+        is_verified = False
+        try:
+            verified_until = datetime.utcfromtimestamp(int(verified_until_raw)) if verified_until_raw else None
+            if verified_until and verified_until > datetime.utcnow() and verified_email == email:
+                is_verified = True
+        except Exception:
+            is_verified = False
+
+        if not is_verified:
+            # Create a verification token and email the bidder
+            token = uuid.uuid4().hex
+            verification = BidVerification(
+                token=token,
+                auction_id=auction_id,
+                bidder_name=name,
+                bidder_email=email,
+                amount=amount,
+                expires_at=datetime.utcnow() + timedelta(minutes=30)
+            )
+            db.session.add(verification)
+            db.session.commit()
+
+            verify_url = url_for('verify_bid', token=token, _external=True)
+
+            html_body = f"""
+                <h2>Confirm your bid</h2>
+                <p>Hi {name},</p>
+                <p>Please confirm your bid for <strong>{auction.title}</strong>:</p>
+                <ul>
+                    <li>Bid amount: <strong>€{amount:.2f}</strong></li>
+                </ul>
+                <p><a href=\"{verify_url}\">Click here to confirm your bid</a></p>
+                <p>This link expires in 30 minutes.</p>
+            """
+
+            text_body = f"""Confirm your bid
+
+Auction: {auction.title}
+Bid amount: €{amount:.2f}
+
+Confirm here: {verify_url}
+
+This link expires in 30 minutes.
+"""
+
+            success, message = send_email(
+                email,
+                f"Confirm your bid - {auction.title}",
+                html_body,
+                text_body
+            )
+
+            if not success:
+                # If SMTP isn't enabled/configured, we should not accept the bid silently
+                return jsonify({'success': False, 'error': f'Email confirmation is required, but sending email failed: {message}'}), 400
+
+            return jsonify({
+                'success': True,
+                'verification_required': True,
+                'message': TRANSLATIONS.get(get_site_language(), TRANSLATIONS['en']).get('verification_email_sent')
+            }), 202
+
     # Create bid
     bid = Bid(
         auction_id=auction_id,
@@ -259,6 +420,67 @@ def place_bid(auction_id):
     response.set_cookie('bidder_email', email, max_age=30*24*60*60)
     
     return response
+
+
+@app.route('/verify/<token>')
+def verify_bid(token):
+    verification = BidVerification.query.filter_by(token=token).first_or_404()
+
+    if verification.is_used:
+        flash('This confirmation link has already been used.', 'error')
+        return redirect(url_for('auction_detail', auction_id=verification.auction_id))
+
+    if verification.is_expired:
+        flash('This confirmation link has expired. Please place your bid again.', 'error')
+        return redirect(url_for('auction_detail', auction_id=verification.auction_id))
+
+    auction = Auction.query.get_or_404(verification.auction_id)
+
+    if not auction.is_running:
+        flash('This auction is no longer accepting bids.', 'error')
+        return redirect(url_for('auction_detail', auction_id=auction.id))
+
+    # Re-validate bid amount at confirmation time
+    current_price = auction.current_price
+    min_bid = current_price + auction.min_bid_increment
+    amount = float(verification.amount)
+
+    if amount < min_bid:
+        flash(f'Your bid is no longer high enough. Minimum bid is now €{min_bid:.2f}. Please bid again.', 'error')
+        return redirect(url_for('auction_detail', auction_id=auction.id))
+
+    if auction.max_bid_increment:
+        max_bid = current_price + auction.max_bid_increment
+        if amount > max_bid:
+            flash(f'Your bid is now too high. Maximum bid is €{max_bid:.2f}. Please bid again.', 'error')
+            return redirect(url_for('auction_detail', auction_id=auction.id))
+
+    if auction.max_price and amount > auction.max_price:
+        flash(f'Bid cannot exceed €{auction.max_price:.2f}. Please bid again.', 'error')
+        return redirect(url_for('auction_detail', auction_id=auction.id))
+
+    bid = Bid(
+        auction_id=auction.id,
+        bidder_name=verification.bidder_name,
+        bidder_email=verification.bidder_email,
+        amount=amount
+    )
+    db.session.add(bid)
+
+    verification.used_at = datetime.utcnow()
+    db.session.commit()
+
+    # Set cookies: remember bidder + remember verification for 7 days for this email
+    resp = redirect(url_for('auction_detail', auction_id=auction.id))
+    resp.set_cookie('bidder_name', verification.bidder_name, max_age=30*24*60*60)
+    resp.set_cookie('bidder_email', verification.bidder_email, max_age=30*24*60*60)
+
+    verified_until = int((datetime.utcnow() + timedelta(days=7)).timestamp())
+    resp.set_cookie('verified_email', verification.bidder_email, max_age=7*24*60*60)
+    resp.set_cookie('verified_until', str(verified_until), max_age=7*24*60*60)
+
+    flash('Bid confirmed and placed successfully!', 'success')
+    return resp
 
 @app.route('/api/auction/<int:auction_id>/status')
 def auction_status(auction_id):
@@ -415,7 +637,7 @@ def admin_settings():
     if request.method == 'POST':
         # Update settings
         setting_keys = [
-            'site_title', 'site_description', 'default_whitelisted_domains',
+            'site_title', 'site_description', 'language', 'default_whitelisted_domains',
             'smtp_enabled', 'smtp_host', 'smtp_port', 'smtp_username', 
             'smtp_password', 'smtp_from_email', 'smtp_from_name', 'smtp_use_tls'
         ]
@@ -463,9 +685,10 @@ def admin_test_email():
 # Initialize database and create default admin
 def init_db():
     with app.app_context():
+        db.create_all()
+        
         # Ensure instance folder exists for persistent SQLite database
         os.makedirs('/app/instance', exist_ok=True)
-        db.create_all()
         
         # Create uploads folder
         os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)

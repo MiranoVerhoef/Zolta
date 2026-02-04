@@ -6,25 +6,25 @@ A sleek, modern auction platform for internal equipment sales. Perfect for organ
 ![Docker](https://img.shields.io/badge/docker-ready-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-green.svg)
 
-##  Features
+## ✨ Features
 
 ### Public Features
--  **Live Auctions** - Real-time bidding with auto-refreshing prices
--  **Countdown Timers** - See exactly when auctions end
--  **Remember Me** - Bidder info saved in cookies
--  **Responsive Design** - Works on desktop and mobile
+- 🔥 **Live Auctions** - Real-time bidding with auto-refreshing prices
+- ⏰ **Countdown Timers** - See exactly when auctions end
+- 🍪 **Remember Me** - Bidder info saved in cookies
+- 📱 **Responsive Design** - Works on desktop and mobile
 
 ### Admin Features
--  **Create Auctions** - Full control over auction parameters
--  **Image Upload** - Add photos of items
--  **Flexible Pricing** - Set min/max prices and bid increments
--  **SMTP Integration** - Send bid confirmations and winner notifications
--  **Email Whitelisting** - Restrict bidding to specific domains (e.g., `@company.com`)
--  **Privacy Toggle** - Show or hide allowed domains from bidders
+- 📦 **Create Auctions** - Full control over auction parameters
+- 📷 **Image Upload** - Add photos of items
+- 💰 **Flexible Pricing** - Set min/max prices and bid increments
+- 📧 **SMTP Integration** - Send bid confirmations and winner notifications
+- 🔒 **Email Whitelisting** - Restrict bidding to specific domains (e.g., `@company.com`)
+- 👁️ **Privacy Toggle** - Show or hide allowed domains from bidders
 
 ---
 
-##  Quick Start
+## 🚀 Quick Start
 
 ### Option 1: Docker Compose (Recommended)
 
@@ -69,7 +69,86 @@ python app.py
 
 ---
 
-##  Configuration
+## 📦 Publishing to GitHub Container Registry (GHCR)
+
+### Automatic Publishing with GitHub Actions
+
+This repository includes a workflow that automatically builds and publishes Docker images to GHCR.
+
+**Step 1: Create a GitHub Repository**
+
+```bash
+cd zolta
+git init
+git add .
+git commit -m "Initial commit: Zolta auction platform"
+
+# Create a new repo on GitHub, then:
+git remote add origin https://github.com/YOUR_USERNAME/zolta.git
+git branch -M main
+git push -u origin main
+```
+
+**Step 2: Enable GitHub Packages**
+
+1. Go to your repository on GitHub
+2. Click **Settings** → **Actions** → **General**
+3. Scroll to "Workflow permissions"
+4. Select **"Read and write permissions"**
+5. Click **Save**
+
+**Step 3: Push and Build**
+
+The GitHub Action triggers automatically on:
+- Push to `main` or `master` branch → Creates `latest` tag
+- Push a version tag (e.g., `v1.0.0`) → Creates versioned tag
+
+```bash
+# Push code (triggers build)
+git push origin main
+
+# Create a release (optional)
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+**Step 4: Make Package Public (Optional)**
+
+1. Go to your GitHub profile → **Packages**
+2. Click on your `zolta` package
+3. Click **Package settings** → **Change visibility** → **Public**
+
+### Manual Publishing
+
+```bash
+# 1. Login to GHCR (use a Personal Access Token)
+echo "YOUR_GITHUB_TOKEN" | docker login ghcr.io -u YOUR_USERNAME --password-stdin
+
+# 2. Build the image
+docker build -t ghcr.io/YOUR_USERNAME/zolta:latest .
+
+# 3. Push to GHCR
+docker push ghcr.io/YOUR_USERNAME/zolta:latest
+
+# 4. Tag a version (optional)
+docker tag ghcr.io/YOUR_USERNAME/zolta:latest ghcr.io/YOUR_USERNAME/zolta:v1.0.0
+docker push ghcr.io/YOUR_USERNAME/zolta:v1.0.0
+```
+
+### Creating a GitHub Personal Access Token
+
+1. Go to **GitHub** → **Settings** → **Developer settings**
+2. Click **Personal access tokens** → **Tokens (classic)**
+3. Click **Generate new token (classic)**
+4. Select scopes:
+   - `read:packages` - Pull images
+   - `write:packages` - Push images
+   - `delete:packages` - Delete images (optional)
+5. Click **Generate token** and save it securely
+
+---
+
+## ⚙️ Configuration
 
 ### Environment Variables
 
@@ -98,7 +177,7 @@ Restrict who can bid by email domain:
 
 ---
 
-##  Project Structure
+## 📁 Project Structure
 
 ```
 zolta/
@@ -139,7 +218,7 @@ zolta/
 
 ---
 
-##  Troubleshooting
+## 🛠️ Troubleshooting
 
 **Can't login to admin?**
 - Default: `admin` / `admin123`
@@ -163,7 +242,7 @@ docker-compose up -d
 
 ---
 
-##  License
+## 📄 License
 
 MIT License - Feel free to use and modify for your organization.
 
