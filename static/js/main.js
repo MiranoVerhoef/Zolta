@@ -183,6 +183,25 @@ async function refreshBidList(auctionId) {
 
 // Auto-refresh auction status
 function initAutoRefresh() {
+    // Index page: reload when an upcoming auction should go live
+    const indexMarker = document.querySelector('[data-page="index"]');
+    if (indexMarker) {
+        const upcomingCards = document.querySelectorAll('[data-auction-start]');
+        if (upcomingCards.length) {
+            setInterval(() => {
+                const now = new Date();
+                for (const card of upcomingCards) {
+                    const start = new Date(card.dataset.auctionStart);
+                    if (!isNaN(start) && now >= start) {
+                        window.location.reload();
+                        return;
+                    }
+                }
+            }, 30000);
+        }
+        return;
+    }
+
     const auctionInfo = document.querySelector('[data-auction-id]');
     if (!auctionInfo) return;
     

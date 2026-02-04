@@ -5,6 +5,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from functools import wraps
 import os
+import signal
+import sys
 import uuid
 import smtplib
 from email.mime.text import MIMEText
@@ -63,12 +65,12 @@ class Auction(db.Model):
 
     @property
     def is_running(self):
-        now = datetime.utcnow()
+        now = datetime.now()
         return self.is_active and self.start_date <= now <= self.end_date
 
     @property
     def status(self):
-        now = datetime.utcnow()
+        now = datetime.now()
         if not self.is_active:
             return 'inactive'
         if now < self.start_date:
@@ -99,7 +101,7 @@ class BidVerification(db.Model):
 
     @property
     def is_expired(self):
-        return datetime.utcnow() > self.expires_at
+        return datetime.now() > self.expires_at
 
     @property
     def is_used(self):
@@ -213,7 +215,7 @@ def inject_helpers():
         lang = get_site_language()
         return TRANSLATIONS.get(lang, TRANSLATIONS['en']).get(key, key)
     def now():
-        return datetime.utcnow()
+        return datetime.now()
     return dict(t=t, site_lang=get_site_language(), now=now)
 def send_email(to_email, subject, html_body, text_body=None):
     """Send email via SMTP"""
@@ -253,7 +255,7 @@ def send_email(to_email, subject, html_body, text_body=None):
 # Public Routes
 @app.route('/')
 def index():
-    now = datetime.utcnow()
+    now = datetime.now()
     active_auctions = Auction.query.filter(
         Auction.is_active == True,
         Auction.start_date <= now,
@@ -339,7 +341,7 @@ def place_bid(auction_id):
         is_verified = False
         try:
             verified_until = datetime.utcfromtimestamp(int(verified_until_raw)) if verified_until_raw else None
-            if verified_until and verified_until > datetime.utcnow() and verified_email == email:
+            if verified_until and verified_until > datetime.now() and verified_email == email:
                 is_verified = True
         except Exception:
             is_verified = False
@@ -353,7 +355,7 @@ def place_bid(auction_id):
                 bidder_name=name,
                 bidder_email=email,
                 amount=amount,
-                expires_at=datetime.utcnow() + timedelta(minutes=30)
+                expires_at=datetime.now() + timedelta(minutes=30)
             )
             db.session.add(verification)
             db.session.commit()
@@ -467,7 +469,7 @@ def verify_bid(token):
     )
     db.session.add(bid)
 
-    verification.used_at = datetime.utcnow()
+    verification.used_at = datetime.now()
     db.session.commit()
 
     # Set cookies: remember bidder + remember verification for 7 days for this email
@@ -475,7 +477,7 @@ def verify_bid(token):
     resp.set_cookie('bidder_name', verification.bidder_name, max_age=30*24*60*60)
     resp.set_cookie('bidder_email', verification.bidder_email, max_age=30*24*60*60)
 
-    verified_until = int((datetime.utcnow() + timedelta(days=7)).timestamp())
+    verified_until = int((datetime.now() + timedelta(days=7)).timestamp())
     resp.set_cookie('verified_email', verification.bidder_email, max_age=7*24*60*60)
     resp.set_cookie('verified_until', str(verified_until), max_age=7*24*60*60)
 
@@ -705,5 +707,11 @@ def init_db():
             print(f"Created default admin user: admin / {default_password}")
 
 if __name__ == '__main__':
+    def _graceful_exit(signum, frame):
+        print('Shutting down...')
+        sys.exit(0)
+    signal.signal(signal.SIGTERM, _graceful_exit)
+    signal.signal(signal.SIGINT, _graceful_exit)
+
     init_db()
-    app.run(host='0.0.0.0', port=5000, debug=os.environ.get('DEBUG', 'false').lower() == 'true')
+    app.run(host='0.0.0.0', port=5000, debug=os.environ.get('DEBUG', 'false', use_reloader=False, threaded=True).lower() == 'true')

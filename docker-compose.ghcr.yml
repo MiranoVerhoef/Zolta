@@ -19,6 +19,7 @@ services:
       - SECRET_KEY=change-this-to-a-secure-random-string-in-production
       - ADMIN_PASSWORD=admin123
       - DEBUG=false
+      - TZ=Europe/Amsterdam
     volumes:
       # Persist database and uploads
       - zolta_data:/app/instance
