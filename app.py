@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session, flash
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session, flash, Response, stream_with_context
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -6,9 +6,12 @@ from datetime import datetime, timedelta
 from functools import wraps
 import os
 import json
+from queue import Queue, Empty
+from threading import Lock
+
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION', '1.2.6')
+APP_VERSION = os.environ.get('APP_VERSION', '1.2.7')
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
 
 def load_config_file():
@@ -64,6 +67,20 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 db = SQLAlchemy(app)
+
+# --- Server-Sent Events pub/sub for realtime bid updates (single-process) ---
+_AUCTION_SUBS_LOCK = Lock()
+_AUCTION_SUBS: dict[int, list[Queue]] = {}
+
+def _publish_auction_event(auction_id: int, payload: dict):
+    with _AUCTION_SUBS_LOCK:
+        subs = list(_AUCTION_SUBS.get(int(auction_id), []))
+    for q in subs:
+        try:
+            q.put_nowait(payload)
+        except Exception:
+            pass
+
 
 # Database Models
 class Admin(db.Model):
@@ -297,12 +314,12 @@ def t_for_lang(lang, key):
 
 @app.context_processor
 def inject_helpers():
-    def t_for_lang(lang, key):
-        return t_for_lang(lang, key)
-
-    def t(key):
+    def t(key: str):
         lang = get_site_language()
         return TRANSLATIONS.get(lang, TRANSLATIONS['en']).get(key, key)
+
+    def t_for(lang: str, key: str):
+        return t_for_lang(lang, key)
 
     def now():
         return datetime.now()
@@ -316,6 +333,7 @@ def inject_helpers():
         theme_background=get_setting('background_color', '#dcdcdc'),
         app_version=APP_VERSION
     )
+
 
 @app.post("/set-language")
 def set_language():
@@ -666,6 +684,7 @@ Bid amount: €{amount:.2f}
     )
     db.session.add(bid)
     db.session.commit()
+    _publish_auction_event(auction_id, {'type': 'bid'})
     
     response = jsonify({
         'success': True, 
@@ -740,6 +759,34 @@ def verify_bid(token):
 
     flash('Bid confirmed and placed successfully!', 'success')
     return resp
+
+
+
+@app.route('/api/auction/<int:auction_id>/stream')
+def auction_stream(auction_id):
+    # SSE stream of bid updates. Requires a single gunicorn worker (or shared broker).
+    q: Queue = Queue()
+    with _AUCTION_SUBS_LOCK:
+        _AUCTION_SUBS.setdefault(int(auction_id), []).append(q)
+
+    def gen():
+        try:
+            # initial hello to open the stream immediately
+            yield "event: hello\ndata: {}\n\n"
+            while True:
+                try:
+                    payload = q.get(timeout=25)
+                    yield "event: update\ndata: " + json.dumps(payload) + "\n\n"
+                except Empty:
+                    # keepalive
+                    yield "event: ping\ndata: {}\n\n"
+        finally:
+            with _AUCTION_SUBS_LOCK:
+                lst = _AUCTION_SUBS.get(int(auction_id), [])
+                if q in lst:
+                    lst.remove(q)
+
+    return Response(stream_with_context(gen()), mimetype='text/event-stream')
 
 @app.route('/api/auction/<int:auction_id>/status')
 def auction_status(auction_id):

@@ -20,3 +20,22 @@ These match the included `docker-compose.yml`.
 - `TZ` – timezone inside the container (e.g. `Europe/Amsterdam`)
 
 Email settings are configured via **Admin → Settings** (SMTP + notifications).
+
+
+## Realtime bid updates (SSE)
+
+Zolta uses Server-Sent Events (SSE) for realtime bid updates.
+
+If you run behind Nginx, make sure proxy buffering is disabled for the SSE endpoint:
+
+```nginx
+location /api/auction/ {
+    proxy_pass http://zolta:5000;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_buffering off;
+    proxy_read_timeout 3600;
+}
+```
+
+For Zoraxy, disable response buffering for the app if available.

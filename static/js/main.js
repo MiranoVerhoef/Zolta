@@ -410,8 +410,30 @@ function initLiveBidRefresh() {
         } catch (e) { /* ignore */ }
     };
     poll();
-    setInterval(poll, 3000);
+
+    // Prefer true realtime via Server-Sent Events (SSE) if available
+    if (window.EventSource) {
+        try {
+            const es = new EventSource(`/api/auction/${auctionId}/stream`);
+            es.addEventListener('update', () => poll());
+            es.addEventListener('hello', () => {});
+            es.addEventListener('ping', () => {});
+            es.onerror = () => {
+                try { es.close(); } catch(e) {}
+                // fallback to polling
+                if (!window.__zoltaPollFallbackStarted) {
+                    window.__zoltaPollFallbackStarted = true;
+                    setInterval(poll, 3000);
+                }
+            };
+        } catch (e) {
+            setInterval(poll, 3000);
+        }
+    } else {
+        setInterval(poll, 3000);
+    }
 }
+
 function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s]));
 }
