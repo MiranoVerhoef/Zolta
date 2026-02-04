@@ -66,7 +66,7 @@ function initBidForms() {
         const submitBtn = bidForm.querySelector('button[type="submit"]');
         const originalText = submitBtn.textContent;
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Placing bid...';
+        submitBtn.textContent = 'Submitting...';
         
         const auctionId = bidForm.dataset.auctionId;
         const formData = {
@@ -88,6 +88,10 @@ function initBidForms() {
             
             if (data.success) {
                 showMessage('success', data.message);
+                if (data.verification_required) {
+                    // Bid will be placed after email confirmation
+                    return;
+                }
                 // Update current price display
                 updatePriceDisplay(data.new_price);
                 // Refresh bid list

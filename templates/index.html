@@ -5,13 +5,12 @@
 {% block content %}
 <div class="container">
     <section class="hero">
-        <h1>Internal Equipment Auctions</h1>
-        <p>Bid on surplus computers, monitors, and other equipment. All proceeds support our organization.</p>
+        <h1>{{ t('homepage_title') }}</h1>
     </section>
 
     {% if active_auctions %}
     <section class="section">
-        <h2 class="section-title">🔥 Live Auctions</h2>
+        <h2 class="section-title">{{ t('live_auctions') }}</h2>
         <div class="auctions-grid">
             {% for auction in active_auctions %}
             <a href="{{ url_for('auction_detail', auction_id=auction.id) }}" class="auction-card">
@@ -38,7 +37,7 @@
 
     {% if upcoming_auctions %}
     <section class="section">
-        <h2 class="section-title">⏰ Upcoming Auctions</h2>
+        <h2 class="section-title">{{ t('upcoming_auctions') }}</h2>
         <div class="auctions-grid">
             {% for auction in upcoming_auctions %}
             <a href="{{ url_for('auction_detail', auction_id=auction.id) }}" class="auction-card">
@@ -64,7 +63,7 @@
 
     {% if ended_auctions %}
     <section class="section">
-        <h2 class="section-title">✅ Recently Ended</h2>
+        <h2 class="section-title">{{ t('recently_ended') }}</h2>
         <div class="auctions-grid">
             {% for auction in ended_auctions %}
             <a href="{{ url_for('auction_detail', auction_id=auction.id) }}" class="auction-card">
@@ -92,8 +91,8 @@
     {% if not active_auctions and not upcoming_auctions and not ended_auctions %}
     <div class="empty-state">
         <div class="empty-state-icon">🔨</div>
-        <h2>No Auctions Yet</h2>
-        <p>Check back soon for upcoming auctions!</p>
+        <h2>{{ t('no_auctions_yet') }}</h2>
+        <p>{{ t('check_back_soon') }}</p>
     </div>
     {% endif %}
 </div>

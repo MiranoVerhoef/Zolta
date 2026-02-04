@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ site_lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,10 +16,10 @@
                 Zolta
             </a>
             <nav class="nav">
-                <a href="{{ url_for('index') }}">Auctions</a>
+                <a href="{{ url_for('index') }}">{{ t('auctions') }}</a>
                 {% if session.get('admin_logged_in') %}
-                <a href="{{ url_for('admin_dashboard') }}">Admin Panel</a>
-                <a href="{{ url_for('admin_logout') }}">Logout</a>
+                <a href="{{ url_for('admin_dashboard') }}">{{ t('admin_panel') }}</a>
+                <a href="{{ url_for('admin_logout') }}">{{ t('logout') }}</a>
                 {% else %}
                 <a href="{{ url_for('admin_login') }}">Admin</a>
                 {% endif %}

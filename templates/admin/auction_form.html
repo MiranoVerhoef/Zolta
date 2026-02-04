@@ -1,6 +1,20 @@
 {% extends "base.html" %}
 
-{% block title %}{% if auction %}Edit{% else %}Create{% endif %} Auction - Admin{% endblock %}
+{% block title %}{% if auction %}Edit{% else %}Create{% endif %} Auction - Admin
+{% block scripts %}
+<script>
+function setToday(inputId) {
+    const el = document.getElementById(inputId);
+    if (!el) return;
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    el.value = value;
+}
+</script>
+{% endblock %}
+
+{% endblock %}
 
 {% block content %}
 <div class="admin-layout">
@@ -92,14 +106,20 @@
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label" for="start_date">Start Date & Time *</label>
-                    <input type="datetime-local" id="start_date" name="start_date" class="form-input" required
-                           value="{{ auction.start_date.strftime('%Y-%m-%dT%H:%M') if auction else '' }}">
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <input type="datetime-local" id="start_date" name="start_date" class="form-input" required
+                               value="{{ auction.start_date.strftime('%Y-%m-%dT%H:%M') if auction else '' }}">
+                        <button type="button" class="btn btn-secondary" onclick="setToday('start_date')">Today</button>
+                    </div>
                 </div>
                 
                 <div class="form-group">
                     <label class="form-label" for="end_date">End Date & Time *</label>
-                    <input type="datetime-local" id="end_date" name="end_date" class="form-input" required
-                           value="{{ auction.end_date.strftime('%Y-%m-%dT%H:%M') if auction else '' }}">
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <input type="datetime-local" id="end_date" name="end_date" class="form-input" required
+                               value="{{ auction.end_date.strftime('%Y-%m-%dT%H:%M') if auction else '' }}">
+                        <button type="button" class="btn btn-secondary" onclick="setToday('end_date')">Today</button>
+                    </div>
                 </div>
             </div>
             
