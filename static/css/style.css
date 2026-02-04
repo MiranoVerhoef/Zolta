@@ -308,8 +308,8 @@ a:hover {
     max-height: 500px;
     object-fit: contain;
     border-radius: var(--radius);
-    background: var(--surface);
-    box-shadow: var(--shadow);
+    background: transparent;
+box-shadow: none;
 }
 
 .auction-info {
@@ -810,7 +810,7 @@ a:hover {
 
 
 /* Flash messages: keep them at the top without breaking admin layout */
-.flash-wrapper{position:sticky;top:0;z-index:2000;padding:0.75rem 1rem;background:transparent;}
+.flash-wrapper{pointer-events:none;position:sticky;top:0;z-index:2000;padding:0.75rem 1rem;background:transparent;}
 .flash-inner{max-width:1200px;margin:0 auto;}
 
 
@@ -972,7 +972,9 @@ body {
   position: fixed;
   top: 18px;
   right: 18px;
-  z-index: 60;
+  z-index: 5000;
+
+  pointer-events: auto;
 }
 
 .lang-fab select{
@@ -1011,3 +1013,24 @@ body {
 
 /* Remove emoji-style spacing from headings */
 .section-title { gap: 8px; }
+
+
+.auction-media-card{
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(15,23,42,0.06);
+  padding: 18px;
+}
+
+.auction-media-card .auction-main-image{
+  background: transparent;
+  box-shadow: none;
+  border-radius: var(--radius-lg);
+}
+
+
+/* Simple fade transitions for navigation (non-ViewTransition browsers) */
+body.page-fade-out{opacity:0;transition:opacity 140ms ease;}
+body.page-fade-in{opacity:0;}
+body.page-fade-in.page-fade-in-active{opacity:1;transition:opacity 220ms ease;}

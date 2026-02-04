@@ -9,6 +9,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Auto-refresh auction status
     initAutoRefresh();
+    // Smooth page transitions (progressive enhancement)
+    initPageTransitions();
+
 
     // PWA: register service worker
     if ('serviceWorker' in navigator) {
@@ -292,3 +295,44 @@ document.querySelectorAll('input[type="file"][accept*="image"]').forEach(input =
         }
     });
 });
+
+
+function initPageTransitions(){
+    // Prefer the View Transitions API if available
+    const supportsVT = typeof document.startViewTransition === 'function';
+
+    document.querySelectorAll('a[href]').forEach(a => {
+        const href = a.getAttribute('href');
+        if (!href) return;
+
+        // Only intercept same-origin navigations (no new tab, no anchors)
+        const isExternal = href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('tel:');
+        const isHashOnly = href.startsWith('#');
+        if (isExternal || isHashOnly) return;
+
+        a.addEventListener('click', (e) => {
+            // respect modifiers / new tab
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || a.target === '_blank') return;
+            e.preventDefault();
+
+            const go = () => { window.location.href = href; };
+
+            if (supportsVT) {
+                document.startViewTransition(go);
+            } else {
+                document.body.classList.add('page-fade-out');
+                setTimeout(go, 140);
+            }
+        });
+    });
+
+    // fade-in on load for non-VT browsers
+    if (!supportsVT) {
+        document.body.classList.add('page-fade-in');
+        requestAnimationFrame(() => document.body.classList.add('page-fade-in-active'));
+        setTimeout(() => {
+            document.body.classList.remove('page-fade-in');
+            document.body.classList.remove('page-fade-in-active');
+        }, 250);
+    }
+}
