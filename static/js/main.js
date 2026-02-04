@@ -448,29 +448,26 @@ function initLiveBidRefresh() {
     };
     initialFetch();
 
-    // True realtime via Server-Sent Events (SSE)
-    if (window.EventSource) {
+    // True realtime via WebSocket (Socket.IO)
+    if (window.io) {
         try {
-            const es = new EventSource(`/api/auction/${auctionId}/stream`);
-            es.addEventListener('update', (evt) => {
-                try {
-                    const payload = JSON.parse(evt.data || '{}');
-                    if (payload.type === 'snapshot' && payload.data) {
-                        applySnapshot(payload.data);
-                    }
-                } catch (e) { /* ignore */ }
+            const socket = io({ transports: ['websocket', 'polling'] });
+            socket.on('connect', () => {
+                socket.emit('join_auction', { auction_id: auctionId });
             });
-            es.addEventListener('ping', () => {});
-            es.onerror = () => {
-                // Don't start hammering polls; just let EventSource reconnect.
-                // If proxy blocks SSE entirely, users can still submit bids; UI just won't live-update.
-            };
+            socket.on('bid_update', (snapshot) => {
+                applySnapshot(snapshot);
+            });
+            socket.on('disconnect', () => { /* will auto-reconnect */ });
+            // Safety fallback: if we never receive anything, poll occasionally
+            let gotUpdate = false;
+            socket.on('bid_update', () => { gotUpdate = true; });
+            setTimeout(() => { if (!gotUpdate) initialFetch(); }, 4000);
         } catch (e) {
-            // If EventSource fails to initialize, fall back to gentle polling of only bid state
-            setInterval(initialFetch, 5000);
+            setInterval(initialFetch, 2000);
         }
     } else {
-        setInterval(initialFetch, 5000);
+        setInterval(initialFetch, 2000);
     }
 }
 

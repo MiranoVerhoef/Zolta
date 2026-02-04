@@ -41,7 +41,10 @@
 
     <footer class="footer-pill"><span>Zolta v{{ app_version }} © 2026 - Verhoef</span></footer>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script src="{{ url_for('static', filename='js/main.js', v=app_version) }}"></script>
+
+
     {% block scripts %}{% endblock %}
 
     <div class="lang-fab" aria-label="Language selector">

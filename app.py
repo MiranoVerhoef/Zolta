@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session, flash, Response, stream_with_context
 from flask_sqlalchemy import SQLAlchemy
+from flask_socketio import SocketIO, join_room
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
@@ -11,7 +12,7 @@ from threading import Lock
 
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION', '1.2.9')
+APP_VERSION = os.environ.get('APP_VERSION', '1.3.0')
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
 
 from queue import Queue, Empty
@@ -119,6 +120,32 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 app = Flask(__name__)
+
+# Realtime bid updates (WebSocket/SSE friendly)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+
+@socketio.on("join_auction")
+def ws_join_auction(data):
+    """Join an auction room so the client receives bid updates."""
+    try:
+        auction_id = int(data.get("auction_id"))
+    except Exception:
+        return
+    join_room(f"auction_{auction_id}")
+    # Immediately send a snapshot to the joining client
+    try:
+        snapshot = _build_auction_snapshot(auction_id)
+    except Exception:
+        snapshot = {"auction_id": auction_id}
+    socketio.emit("bid_update", snapshot, room=f"auction_{auction_id}")
+
+def ws_broadcast_auction(auction_id: int):
+    """Broadcast a fresh snapshot to all viewers of an auction."""
+    try:
+        snapshot = _build_auction_snapshot(auction_id)
+    except Exception:
+        snapshot = {"auction_id": int(auction_id)}
+    socketio.emit("bid_update", snapshot, room=f"auction_{int(auction_id)}")
 
 @app.context_processor
 def inject_app_version():
@@ -415,14 +442,13 @@ def t_for_lang(lang, key):
     lang = (lang or '').strip().lower()
     if lang not in ("en", "nl"):
         lang = get_site_language()
-    return TRANSLATIONS.get(lang, TRANSLATIONS['en']).get(key, key)
+    return (TRANSLATIONS.get(lang, {}).get(key) or TRANSLATIONS['en'].get(key, key))
 
 
-@app.context_processor
 def inject_helpers():
     def t(key: str):
         lang = get_site_language()
-        return TRANSLATIONS.get(lang, TRANSLATIONS['en']).get(key, key)
+        return (TRANSLATIONS.get(lang, {}).get(key) or TRANSLATIONS['en'].get(key, key))
 
     def t_for(lang: str, key: str):
         return t_for_lang(lang, key)
@@ -791,6 +817,11 @@ Bid amount: €{amount:.2f}
     db.session.add(bid)
     db.session.commit()
     _publish_auction_event(auction_id, {'type': 'snapshot', 'data': _build_auction_snapshot(auction_id)})
+    # WebSocket broadcast for realtime viewers
+    try:
+        ws_broadcast_auction(auction_id)
+    except Exception:
+        pass
     
     response = jsonify({
         'success': True, 
@@ -853,6 +884,13 @@ def verify_bid(token):
 
     verification.used_at = datetime.now()
     db.session.commit()
+
+    # Realtime update for other viewers
+    try:
+        _publish_auction_event(auction.id, {'type': 'snapshot', 'data': _build_auction_snapshot(auction.id)})
+        ws_broadcast_auction(auction.id)
+    except Exception:
+        pass
 
     # Set cookies: remember bidder + remember verification for 7 days for this email
     resp = redirect(url_for('auction_detail', auction_id=auction.id))
