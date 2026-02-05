@@ -217,18 +217,44 @@ function updateMinBid(currentPrice) {
 
 async function refreshBidList(auctionId) {
     try {
-        const response = await fetch(`/api/auction/${auctionId}/status`);
+        const response = await fetch(`/api/auction/${auctionId}/state`, { cache: 'no-store' });
+        if (!response.ok) return;
         const data = await response.json();
-        
-        // Update bid count
+
+        // Update price + count
+        if (typeof data.current_price === 'number') updatePriceDisplay(data.current_price);
         const bidCountEl = document.getElementById('bid-count');
-        if (bidCountEl) {
-            bidCountEl.textContent = data.bid_count;
+        if (bidCountEl && data.bid_count != null) bidCountEl.textContent = data.bid_count;
+
+        // Update list
+        const list = document.getElementById('recent-bids');
+        if (list && Array.isArray(data.bids)) {
+            const header = `
+                <div class="bid-header" aria-hidden="true">
+                    <div>Naam</div>
+                    <div>Datum</div>
+                    <div class="text-right">Bod</div>
+                </div>`;
+
+            if (data.bids.length === 0) {
+                list.innerHTML = header + '<div class="empty-bids">Nog geen biedingen.</div>';
+            } else {
+                list.innerHTML = header + data.bids.map((b, idx) => {
+                    const dt = new Date(b.created_at);
+                    const ts = isNaN(dt) ? '' : dt.toLocaleString('nl-NL');
+                    const winning = idx === 0 ? ' winning' : '';
+                    return `
+                        <div class="bid-item${winning}">
+                            <div class="bid-name">${escapeHtml(b.name)}</div>
+                            <div class="bid-time">${escapeHtml(ts)}</div>
+                            <div class="bid-amount">€${Number(b.amount).toFixed(2)}</div>
+                        </div>`;
+                }).join('');
+            }
         }
-        
-        // Reload page to show updated bid list (simple approach)
-        // For a more sophisticated approach, you could fetch and render bids via AJAX
-        window.location.reload();
+
+        // Update min bid input based on latest price
+        if (typeof data.current_price === 'number') updateMinBid(data.current_price);
     } catch (error) {
         console.error('Failed to refresh bid list:', error);
     }

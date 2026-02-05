@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_socketio import SocketIO, join_room
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.exceptions import HTTPException
 from datetime import datetime, timedelta
 from urllib.parse import urlparse
 from functools import wraps
@@ -14,7 +15,7 @@ from markupsafe import escape as html_escape
 
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION', '1.3.14')
+APP_VERSION = os.environ.get('APP_VERSION', '1.3.15')
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
 
 from queue import Queue, Empty
@@ -125,6 +126,31 @@ app = Flask(__name__)
 
 # Realtime bid updates (WebSocket/SSE friendly)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+
+
+@app.errorhandler(HTTPException)
+def _handle_http_exception(e):
+    """Return JSON errors for API routes (avoid HTML error pages in fetch)."""
+    try:
+        if request.path.startswith('/api/'):
+            return jsonify({'success': False, 'error': e.description}), e.code
+    except Exception:
+        pass
+    return e
+
+
+@app.errorhandler(Exception)
+def _handle_unexpected_exception(e):
+    """Ensure API routes never return HTML on unexpected errors."""
+    try:
+        if request.path.startswith('/api/'):
+            app.logger.exception('Unhandled API error: %s', e)
+            return jsonify({'success': False, 'error': 'Interne serverfout. Probeer het opnieuw.'}), 500
+    except Exception:
+        pass
+    # Fall back to a minimal error response for non-API routes
+    app.logger.exception('Unhandled error: %s', e)
+    return 'Internal Server Error', 500
 
 @socketio.on("join_auction")
 def ws_join_auction(data):
@@ -806,101 +832,103 @@ def auction_detail(auction_id):
 
 @app.route('/api/auction/<int:auction_id>/bid', methods=['POST'])
 def place_bid(auction_id):
-    auction = Auction.query.get_or_404(auction_id)
-    
-    if not auction.is_running:
-        return jsonify({'success': False, 'error': 'Deze veiling accepteert momenteel geen biedingen.'}), 400
-    
-    data = request.json or {}
-    name = data.get('name', '').strip()
-    email = data.get('email', '').strip().lower()
-    amount = data.get('amount')
-    
-    # Validation
-    if not name or not email or not amount:
-        return jsonify({'success': False, 'error': 'Naam, e-mailadres en bodbedrag zijn verplicht.'}), 400
-    
+    """Place a bid via JSON API. Always responds with JSON (never HTML)."""
     try:
-        amount = float(amount)
-    except (ValueError, TypeError):
-        return jsonify({'success': False, 'error': 'Ongeldig bodbedrag.'}), 400
+        auction = Auction.query.get_or_404(auction_id)
 
-    # Email domain validation
-    if auction.whitelisted_domains:
-        if not validate_email_domain(email, auction.whitelisted_domains):
-            allowed = auction.whitelisted_domains.replace(',', ', ')
-            return jsonify({'success': False, 'error': f'E-mailadres moet eindigen op een van deze domeinen: {allowed}'}), 400
-    
-    # Bid amount validation
-    current_price = auction.current_price
-    min_bid = current_price + auction.min_bid_increment
-    
-    if amount < min_bid:
-        return jsonify({'success': False, 'error': f'Minimum bod is €{min_bid:.2f}'}), 400
-    
-    if auction.max_bid_increment:
-        max_bid = current_price + auction.max_bid_increment
-        if amount > max_bid:
-            return jsonify({'success': False, 'error': f'Maximum bod is €{max_bid:.2f}'}), 400
-    
-    if auction.max_price and amount > auction.max_price:
-        return jsonify({'success': False, 'error': f'Het bod mag niet hoger zijn dan €{auction.max_price:.2f}'}), 400
-    
-    # Email confirmation flow (7-day remembered verification)
-    if auction.require_email_confirmation:
-        verified_email = (request.cookies.get('verified_email') or '').strip().lower()
-        verified_until_raw = (request.cookies.get('verified_until') or '').strip()
-        is_verified = False
+        # Use effective status so bidding opens/closes correctly even when container TZ differs
+        effective_status = compute_effective_status(auction)
+        if effective_status != 'active':
+            return jsonify({'success': False, 'error': 'Deze veiling accepteert momenteel geen biedingen.'}), 400
+
+        data = request.get_json(silent=True) or {}
+        name = (data.get('name') or '').strip()
+        email = (data.get('email') or '').strip().lower()
+        amount = data.get('amount')
+
+        # Validation
+        if not name or not email or amount in (None, ''):
+            return jsonify({'success': False, 'error': 'Naam, e-mailadres en bedrag zijn verplicht.'}), 400
+
         try:
-            verified_until = datetime.utcfromtimestamp(int(verified_until_raw)) if verified_until_raw else None
-            if verified_until and verified_until > datetime.now() and verified_email == email:
-                is_verified = True
-        except Exception:
+            amount = float(amount)
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'Ongeldig bedrag.'}), 400
+
+        # Email domain validation
+        if auction.whitelisted_domains:
+            if not validate_email_domain(email, auction.whitelisted_domains):
+                allowed = auction.whitelisted_domains.replace(',', ', ')
+                return jsonify({'success': False, 'error': f'E-mailadres moet eindigen op een van deze domeinen: {allowed}'}), 400
+
+        # Bid amount validation
+        current_price = auction.current_price
+        min_bid = current_price + auction.min_bid_increment
+
+        if amount < min_bid:
+            return jsonify({'success': False, 'error': f'Minimum bod is €{min_bid:.2f}'}), 400
+
+        if auction.max_bid_increment:
+            max_bid = current_price + auction.max_bid_increment
+            if amount > max_bid:
+                return jsonify({'success': False, 'error': f'Maximum bod is €{max_bid:.2f}'}), 400
+
+        if auction.max_price and amount > auction.max_price:
+            return jsonify({'success': False, 'error': f'Het bod mag niet hoger zijn dan €{auction.max_price:.2f}'}), 400
+
+        # Email confirmation flow (7-day remembered verification)
+        if auction.require_email_confirmation:
+            verified_email = (request.cookies.get('verified_email') or '').strip().lower()
+            verified_until_raw = (request.cookies.get('verified_until') or '').strip()
             is_verified = False
+            try:
+                verified_until = datetime.utcfromtimestamp(int(verified_until_raw)) if verified_until_raw else None
+                if verified_until and verified_until > datetime.now() and verified_email == email:
+                    is_verified = True
+            except Exception:
+                is_verified = False
 
-        if not is_verified:
-            # Create a verification token and email the bidder
-            token = uuid.uuid4().hex
-            verification = BidVerification(
-                token=token,
-                auction_id=auction_id,
-                bidder_name=name,
-                bidder_email=email,
-                amount=amount,
-                expires_at=datetime.now() + timedelta(minutes=30)
-            )
-            db.session.add(verification)
-            db.session.commit()
+            if not is_verified:
+                token = uuid.uuid4().hex
+                verification = BidVerification(
+                    token=token,
+                    auction_id=auction_id,
+                    bidder_name=name,
+                    bidder_email=email,
+                    amount=amount,
+                    expires_at=datetime.now() + timedelta(minutes=30)
+                )
+                db.session.add(verification)
+                db.session.commit()
 
-            verify_url = url_for('verify_bid', token=token, _external=True)
-            lang = getattr(auction, 'language', None) or get_site_language()
+                verify_url = url_for('verify_bid', token=token, _external=True)
+                lang = getattr(auction, 'language', None) or get_site_language()
+                base_url = base_url_from_external_url(verify_url) or get_site_url()
 
-            base_url = base_url_from_external_url(verify_url) or get_site_url()
+                intro_html = f"""
+                    <p>Hallo {name},</p>
+                    <p>Je staat op het punt om je bod te bevestigen voor <strong>{auction.title}</strong>.</p>
+                    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-top:12px;">
+                      <tr>
+                        <td style="padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;">
+                          <div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;">Bedrag</div>
+                          <div style="font-size:20px;font-weight:800;color:#111827;">€{amount:.2f}</div>
+                        </td>
+                      </tr>
+                    </table>
+                """
 
-            intro_html = f"""
-                <p>Hallo {name},</p>
-                <p>Je staat op het punt om je bod te bevestigen voor <strong>{auction.title}</strong>.</p>
-                <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-top:12px;">
-                  <tr>
-                    <td style="padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;">
-                      <div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;">Bedrag</div>
-                      <div style="font-size:20px;font-weight:800;color:#111827;">€{amount:.2f}</div>
-                    </td>
-                  </tr>
-                </table>
-            """
+                html_body = build_email_html(
+                    title=t_for_lang(lang, 'confirm_bid_subject').format(title=auction.title),
+                    heading=t_for_lang(lang, 'confirm_bid_heading'),
+                    intro_html=intro_html,
+                    cta_text=t_for_lang(lang, 'confirm_bid_cta'),
+                    cta_url=verify_url,
+                    footer_html=t_for_lang(lang, 'confirm_bid_expires'),
+                    base_url=base_url
+                )
 
-            html_body = build_email_html(
-                title=t_for_lang(lang, 'confirm_bid_subject').format(title=auction.title),
-                heading=t_for_lang(lang, 'confirm_bid_heading'),
-                intro_html=intro_html,
-                cta_text=t_for_lang(lang, 'confirm_bid_cta'),
-                cta_url=verify_url,
-                footer_html=t_for_lang(lang, 'confirm_bid_expires'),
-                base_url=base_url
-            )
-
-            text_body = f"""{t_for_lang(lang, 'confirm_bid_heading')}
+                text_body = f"""{t_for_lang(lang, 'confirm_bid_heading')}
 
 Veiling: {auction.title}
 Bedrag: €{amount:.2f}
@@ -910,56 +938,64 @@ Bedrag: €{amount:.2f}
 {t_for_lang(lang, 'confirm_bid_expires')}
 """
 
-            subject = t_for_lang(lang, 'confirm_bid_subject').format(title=auction.title)
+                subject = t_for_lang(lang, 'confirm_bid_subject').format(title=auction.title)
 
-            success, message = send_email(
-                email,
-                subject,
-                html_body,
-                text_body
-            )
+                success, message = send_email(
+                    email,
+                    subject,
+                    html_body,
+                    text_body
+                )
 
-            if not success:
-                # If SMTP isn't enabled/configured, we should not accept the bid silently
-                return jsonify({'success': False, 'error': f'E-mailbevestiging is vereist, maar verzenden van e-mail is mislukt: {message}'}), 400
+                if not success:
+                    return jsonify({'success': False, 'error': f'E-mailbevestiging is vereist, maar verzenden van e-mail is mislukt: {message}'}), 400
 
-            return jsonify({
-                'success': True,
-                'verification_required': True,
-                'message': TRANSLATIONS.get('nl', {}).get('verification_email_sent')
-            }), 202
+                return jsonify({
+                    'success': True,
+                    'verification_required': True,
+                    'message': TRANSLATIONS.get('nl', {}).get('verification_email_sent')
+                }), 202
 
-    # Create bid
-    bid = Bid(
-        auction_id=auction_id,
-        bidder_name=name,
-        bidder_email=email,
-        amount=amount
-    )
-    db.session.add(bid)
-    db.session.commit()
-    _publish_auction_event(auction_id, {'type': 'snapshot', 'data': _build_auction_snapshot(auction_id)})
-    # WebSocket broadcast for realtime viewers
-    try:
-        ws_broadcast_auction(auction_id)
-    except Exception:
-        pass
-    
-    response = jsonify({
-        'success': True, 
-        'message': 'Bod geplaatst!',
-        'new_price': amount,
-        'bid_id': bid.id
-    })
-    
-    # Save to cookies
-    response.set_cookie('bidder_name', name, max_age=30*24*60*60)  # 30 days
-    response.set_cookie('bidder_email', email, max_age=30*24*60*60)
-    
-    return response
+        # Create bid
+        bid = Bid(
+            auction_id=auction_id,
+            bidder_name=name,
+            bidder_email=email,
+            amount=amount
+        )
+        db.session.add(bid)
+        db.session.commit()
+
+        # Notify viewers
+        try:
+            _publish_auction_event(auction_id, {'type': 'snapshot', 'data': _build_auction_snapshot(auction_id)})
+        except Exception:
+            pass
+        try:
+            ws_broadcast_auction(auction_id)
+        except Exception:
+            pass
+
+        response = jsonify({
+            'success': True,
+            'message': 'Bod geplaatst!',
+            'new_price': amount,
+            'bid_id': bid.id
+        })
+
+        # Save to cookies
+        response.set_cookie('bidder_name', name, max_age=30*24*60*60)
+        response.set_cookie('bidder_email', email, max_age=30*24*60*60)
+
+        return response
+
+    except Exception as e:
+        app.logger.exception('Bid placement failed: %s', e)
+        return jsonify({'success': False, 'error': 'Interne serverfout. Probeer het opnieuw.'}), 500
 
 
 @app.route('/verify/<token>')
+
 def verify_bid(token):
     verification = BidVerification.query.filter_by(token=token).first_or_404()
 
