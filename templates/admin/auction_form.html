@@ -133,7 +133,7 @@
             <div class="form-group">
                 <label class="form-checkbox">
                     <input type="checkbox" name="show_allowed_domains"
-                           {% if not auction or auction.show_allowed_domains %}checked{% endif %}>
+                           {% if auction and auction.show_allowed_domains %}checked{% endif %}>
                     <span>Toon toegestane domeinen aan bieders</span>
                 </label>
                 <span class="form-hint">Wanneer ingeschakeld zien bieders welke domeinen zijn toegestaan. Zet uit om dit te verbergen.</span>

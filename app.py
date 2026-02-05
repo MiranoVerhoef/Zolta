@@ -15,7 +15,7 @@ from markupsafe import escape as html_escape
 
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION', '1.3.18')
+APP_VERSION = os.environ.get('APP_VERSION', '1.3.19')
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
 
 from queue import Queue, Empty
@@ -248,7 +248,7 @@ class Auction(db.Model):
     end_date = db.Column(db.DateTime, nullable=False)
     require_email_confirmation = db.Column(db.Boolean, default=True)
     whitelisted_domains = db.Column(db.Text, nullable=True)  # Comma-separated
-    show_allowed_domains = db.Column(db.Boolean, default=True)  # Show domains to users
+    show_allowed_domains = db.Column(db.Boolean, default=False)  # Show domains to users
     language = db.Column(db.String(2), default='nl')  # Auction language for emails/confirmation
     winner_instructions = db.Column(db.Text, nullable=True)  # Optional winner email instructions
     # Notification options
@@ -858,8 +858,10 @@ def place_bid(auction_id):
         # Email domain validation
         if auction.whitelisted_domains:
             if not validate_email_domain(email, auction.whitelisted_domains):
-                allowed = auction.whitelisted_domains.replace(',', ', ')
-                return jsonify({'success': False, 'error': f'E-mailadres moet eindigen op een van deze domeinen: {allowed}'}), 400
+                if getattr(auction, 'show_allowed_domains', False):
+                    allowed = auction.whitelisted_domains.replace(',', ', ')
+                    return jsonify({'success': False, 'error': f'E-mailadres moet eindigen op een van deze domeinen: {allowed}'}), 400
+                return jsonify({'success': False, 'error': 'E-mailadres is niet toegestaan voor deze veiling.'}), 400
 
         # Bid amount validation
         current_price = auction.current_price
