@@ -15,7 +15,7 @@ from markupsafe import escape as html_escape
 
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION', '1.3.15')
+APP_VERSION = os.environ.get('APP_VERSION', '1.3.17')
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
 
 from queue import Queue, Empty
@@ -994,24 +994,42 @@ Bedrag: €{amount:.2f}
         return jsonify({'success': False, 'error': 'Interne serverfout. Probeer het opnieuw.'}), 500
 
 
-@app.route('/verify/<token>')
 
+@app.route('/verify/<token>')
 def verify_bid(token):
     verification = BidVerification.query.filter_by(token=token).first_or_404()
 
+    # Helper: always set bidder + verification cookies so the user won't need to verify again,
+    # even if the bid can no longer be placed (e.g. someone else outbid in the meantime).
+    def _resp_with_cookies(resp):
+        resp.set_cookie('bidder_name', verification.bidder_name, max_age=30*24*60*60)
+        resp.set_cookie('bidder_email', verification.bidder_email, max_age=30*24*60*60)
+
+        verified_until = int((datetime.now() + timedelta(days=7)).timestamp())
+        resp.set_cookie('verified_email', verification.bidder_email, max_age=7*24*60*60)
+        resp.set_cookie('verified_until', str(verified_until), max_age=7*24*60*60)
+        return resp
+
+    # If already used/expired, still set cookies (user did verify earlier) but don't place bid again.
     if verification.is_used:
-        flash('This confirmation link has already been used.', 'error')
-        return redirect(url_for('auction_detail', auction_id=verification.auction_id))
+        flash('Deze bevestigingslink is al gebruikt.', 'error')
+        return _resp_with_cookies(redirect(url_for('auction_detail', auction_id=verification.auction_id)))
 
     if verification.is_expired:
-        flash('This confirmation link has expired. Please place your bid again.', 'error')
-        return redirect(url_for('auction_detail', auction_id=verification.auction_id))
+        flash('Deze bevestigingslink is verlopen. Plaats je bod opnieuw.', 'error')
+        return _resp_with_cookies(redirect(url_for('auction_detail', auction_id=verification.auction_id)))
 
     auction = Auction.query.get_or_404(verification.auction_id)
 
+    # Mark the verification as used regardless of whether the bid is still valid at this moment.
+    # This prevents re-using the same confirmation link multiple times.
+    verification.used_at = datetime.now()
+    db.session.commit()
+
+    # If auction is not running anymore, just remember the user and redirect.
     if not auction.is_running:
-        flash('This auction is no longer accepting bids.', 'error')
-        return redirect(url_for('auction_detail', auction_id=auction.id))
+        flash('Deze veiling accepteert geen biedingen meer.', 'error')
+        return _resp_with_cookies(redirect(url_for('auction_detail', auction_id=auction.id)))
 
     # Re-validate bid amount at confirmation time
     current_price = auction.current_price
@@ -1019,18 +1037,18 @@ def verify_bid(token):
     amount = float(verification.amount)
 
     if amount < min_bid:
-        flash(f'Your bid is no longer high enough. Minimum bid is now €{min_bid:.2f}. Please bid again.', 'error')
-        return redirect(url_for('auction_detail', auction_id=auction.id))
+        flash('Email bevestigd. Je bod was inmiddels ingehaald; plaats een nieuw bod.', 'info')
+        return _resp_with_cookies(redirect(url_for('auction_detail', auction_id=auction.id)))
 
     if auction.max_bid_increment:
         max_bid = current_price + auction.max_bid_increment
         if amount > max_bid:
-            flash(f'Your bid is now too high. Maximum bod is €{max_bid:.2f}. Please bid again.', 'error')
-            return redirect(url_for('auction_detail', auction_id=auction.id))
+            flash(f'Je bod is nu te hoog. Maximum bod is €{max_bid:.2f}.', 'error')
+            return _resp_with_cookies(redirect(url_for('auction_detail', auction_id=auction.id)))
 
     if auction.max_price and amount > auction.max_price:
-        flash(f'Het bod mag niet hoger zijn dan €{auction.max_price:.2f}. Please bid again.', 'error')
-        return redirect(url_for('auction_detail', auction_id=auction.id))
+        flash(f'Het bod mag niet hoger zijn dan €{auction.max_price:.2f}.', 'error')
+        return _resp_with_cookies(redirect(url_for('auction_detail', auction_id=auction.id)))
 
     bid = Bid(
         auction_id=auction.id,
@@ -1039,8 +1057,6 @@ def verify_bid(token):
         amount=amount
     )
     db.session.add(bid)
-
-    verification.used_at = datetime.now()
     db.session.commit()
 
     # Realtime update for other viewers
@@ -1050,20 +1066,9 @@ def verify_bid(token):
     except Exception:
         pass
 
-    # Set cookies: remember bidder + remember verification for 7 days for this email
-    resp = redirect(url_for('auction_detail', auction_id=auction.id))
-    resp.set_cookie('bidder_name', verification.bidder_name, max_age=30*24*60*60)
-    resp.set_cookie('bidder_email', verification.bidder_email, max_age=30*24*60*60)
-
-    verified_until = int((datetime.now() + timedelta(days=7)).timestamp())
-    resp.set_cookie('verified_email', verification.bidder_email, max_age=7*24*60*60)
-    resp.set_cookie('verified_until', str(verified_until), max_age=7*24*60*60)
-
-    flash('Bid confirmed and placed successfully!', 'success')
+    resp = _resp_with_cookies(redirect(url_for('auction_detail', auction_id=auction.id)))
+    flash('Bod bevestigd en geplaatst!', 'success')
     return resp
-
-
-
 
 @app.route('/api/auction/<int:auction_id>/stream')
 def auction_stream(auction_id):
