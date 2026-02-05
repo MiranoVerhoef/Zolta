@@ -48,10 +48,7 @@
 
             <div class="auction-info">
                 <span class="auction-status {{ auction.status }}" id="auction-status-pill" data-status="{{ auction.status }}">
-                    {% set _is_active = (auction.status == 'active') %}
-{% set _is_ended = (auction.status == 'ended') %}
-<div id="bid-form-container" style="{% if not _is_active %}display:none;{% endif %}">
-{{ t('live_now') }}
+                    {% if auction.status == 'active' %}{{ t('live_now') }}
                     {% elif auction.status == 'upcoming' %}{{ t('starting_soon') }}
                     {% else %}{{ t('ended') }}
                     {% endif %}
@@ -120,7 +117,8 @@
                 {% endif %}
 
                 {% if auction.status == 'active' %}
-                <div class="bid-form">
+                <div id="bid-form-container">
+                    <div class="bid-form">
                     <h3>{{ t('place_your_bid') }}</h3>
                     <div id="message-container"></div>
 
@@ -159,19 +157,39 @@
                         </button>
                     </form>
                 </div>
-</div>
-<div id="ended-info" class="alert alert-info mt-2" style="{% if not _is_ended %}display:none;{% endif %}">
-    <strong>Veiling {{ t('ended') }}</strong><br>
-    <span id="ended-winner-line">
-    {% if auction.highest_bidder %}
-    Winnaar: {{ auction.highest_bidder.bidder_name }} met €{{ "%.2f"|format(auction.highest_bidder.amount) }}
-    {% else %}
-    Er zijn geen biedingen geplaatst.
-    {% endif %}
-    </span>
-</div>
                 </div>
                 {% endif %}
+
+                <div id="ended-info" class="alert alert-info mt-2" {% if auction.status != 'ended' %}style="display:none;"{% endif %}>
+                    <strong>Veiling {{ t('ended') }}</strong><br>
+                    <span id="ended-winner-line">
+                    {% if auction.highest_bidder %}
+                        Winnaar: {{ auction.highest_bidder.bidder_name }} met €{{ "%.2f"|format(auction.highest_bidder.amount) }}
+                    {% else %}
+                        Er zijn geen biedingen geplaatst.
+                    {% endif %}
+                    </span>
+                </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="amount">{{ t('bid_amount') }}</label>
+                            {% set min_bid = auction.current_price + auction.min_bid_increment %}
+                            <input type="number" id="amount" name="amount" class="form-input"
+                                   min="{{ '%.2f'|format(min_bid) }}"
+                                   step="0.01"
+                                   value="{{ '%.2f'|format(min_bid) }}"
+                                   data-min-increment="{{ auction.min_bid_increment }}"
+                                   required>
+                            <span class="form-hint">Minimum bod: €{{ "%.2f"|format(min_bid) }}</span>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block">
+                            {{ t('place_bid') }}
+                        </button>
+                    </form>
+                </div>
+
             </div>
         </div>
     </div>
