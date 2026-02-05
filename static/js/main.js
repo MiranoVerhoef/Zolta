@@ -491,6 +491,15 @@ function applyAuctionStatusUI(data) {
     const priceLabel = document.getElementById('price-label') || document.querySelector('.price-label');
     const countdown = document.querySelector('.countdown[data-countdown]');
 
+    const setBidInputsEnabled = (enabled) => {
+        const form = document.getElementById('bid-form');
+        if (!form) return;
+        form.querySelectorAll('input, button, select, textarea').forEach(el => {
+            if (el.type === 'hidden') return;
+            el.disabled = !enabled;
+        });
+    };
+
     if (!data || !data.status) return;
 
     // Update status pill text + classes
@@ -508,6 +517,7 @@ function applyAuctionStatusUI(data) {
     if (data.status === 'ended') {
         // Hide bid form
         if (bidFormWrap) bidFormWrap.style.display = 'none';
+        setBidInputsEnabled(false);
 
         // Show ended info (if present)
         if (endedInfo) {
@@ -534,6 +544,7 @@ function applyAuctionStatusUI(data) {
     } else if (data.status === 'active') {
         // Show bid form
         if (bidFormWrap) bidFormWrap.style.display = '';
+        setBidInputsEnabled(true);
         if (endedInfo) endedInfo.style.display = 'none';
         if (priceLabel) {
             // keep current server label if present, otherwise default
@@ -541,6 +552,11 @@ function applyAuctionStatusUI(data) {
                 priceLabel.textContent = 'Huidig bod';
             }
         }
+    } else {
+        // Upcoming / inactive: hide bid form and disable inputs
+        if (bidFormWrap) bidFormWrap.style.display = 'none';
+        setBidInputsEnabled(false);
+        if (endedInfo) endedInfo.style.display = 'none';
     }
 }
 
