@@ -1178,3 +1178,36 @@ body.page-fade-in.page-fade-in-active{opacity:1;transition:opacity 220ms ease;}
 
 
 .auction-detail .auction-status.active { font-size: 1.05rem; padding: 0.5rem 1.15rem; }
+
+
+/* Winner confetti overlay (big + visible) */
+.confetti-overlay{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+.confetti-piece{
+  position:absolute;
+  top:-10vh;
+  width:10px;
+  height:18px;
+  border-radius:2px;
+  opacity:0.95;
+  background: currentColor;
+  color: inherit;
+  animation: confetti-fall 3.8s linear forwards;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+}
+.confetti-piece:nth-child(3n){ width:12px; height:22px; }
+.confetti-piece:nth-child(4n){ width:8px; height:16px; }
+.confetti-piece:nth-child(5n){ width:14px; height:26px; }
+.confetti-piece:nth-child(odd){ background:#ffffff; }
+.confetti-piece:nth-child(even){ background:#00d4ff; }
+.confetti-piece:nth-child(7n){ background:#7c3aed; }
+.confetti-piece:nth-child(11n){ background:#22c55e; }
+@keyframes confetti-fall{
+  0%{ transform: translateY(0) rotate(0deg); }
+  100%{ transform: translateY(120vh) rotate(720deg); }
+}

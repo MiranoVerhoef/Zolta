@@ -553,3 +553,35 @@ function spawnConfetti(host) {
 function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s]));
 }
+
+
+function showWinnerCelebration(name, amount) {
+    // Populate winner modal if present
+    const modal = document.getElementById('winner-modal');
+    if (modal) {
+        const nameEl = modal.querySelector('[data-winner-name]');
+        const amountEl = modal.querySelector('[data-winner-amount]');
+        if (nameEl) nameEl.textContent = name || '';
+        if (amountEl && typeof amount === 'number') amountEl.textContent = '€' + amount.toFixed(2);
+        modal.classList.add('show');
+        modal.style.display = 'flex';
+    }
+    // Big confetti overlay
+    try { launchBigConfetti(); } catch (e) {}
+}
+
+function launchBigConfetti() {
+    const overlay = document.createElement('div');
+    overlay.className = 'confetti-overlay';
+    document.body.appendChild(overlay);
+    const pieces = 220;
+    for (let i = 0; i < pieces; i++) {
+        const p = document.createElement('div');
+        p.className = 'confetti-piece';
+        p.style.left = Math.random() * 100 + 'vw';
+        p.style.animationDelay = (Math.random() * 0.6) + 's';
+        p.style.transform = 'rotate(' + (Math.random()*360) + 'deg)';
+        overlay.appendChild(p);
+    }
+    setTimeout(() => { overlay.remove(); }, 6500);
+}

@@ -14,7 +14,7 @@ from markupsafe import escape as html_escape
 
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION', '1.3.9')
+APP_VERSION = os.environ.get('APP_VERSION', '1.3.10')
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
 
 from queue import Queue, Empty
@@ -64,7 +64,7 @@ def get_auction_state_payload(auction_id: int) -> dict:
             t = ''
         recent.append({"name": b.name, "amount": float(b.amount), "time": t})
     winner = None
-    if auction.status == 'ended' and auction.winner_name and auction.winner_amount is not None:
+    if effective_status == 'ended' and auction.winner_name and auction.winner_amount is not None:
         winner = {"name": auction.winner_name, "amount": float(auction.winner_amount)}
     return {
         "auction_id": auction_id,
@@ -171,7 +171,7 @@ def _build_auction_snapshot(auction_id: int) -> dict:
     highest = auction.highest_bidder
     return {
         'auction_id': auction.id,
-        'status': auction.status,
+        'status': effective_status,
         'current_price': float(auction.current_price),
         'bid_count': Bid.query.filter_by(auction_id=auction.id).count(),
         'winner_name': highest.bidder_name if highest else None,
@@ -765,6 +765,16 @@ def index():
 @app.route('/auction/<int:auction_id>')
 def auction_detail(auction_id):
     auction = Auction.query.get_or_404(auction_id)
+    now = datetime.utcnow()
+    if auction.end_date and now >= auction.end_date:
+        effective_status = 'ended'
+    elif auction.start_date and now < auction.start_date:
+        effective_status = 'upcoming'
+    else:
+        effective_status = 'active'
+    # Use computed status for UI rendering without persisting it
+    auction.status = effective_status
+
     bids = Bid.query.filter_by(auction_id=auction_id).order_by(Bid.amount.desc()).limit(10).all()
     
     # Get saved user info from cookies
@@ -1041,7 +1051,7 @@ def auction_status(auction_id):
         'current_price': auction.current_price,
         'highest_bidder': highest_bid.bidder_name if highest_bid else None,
         'bid_count': len(auction.bids),
-        'status': auction.status,
+        'status': effective_status,
         'end_date': auction.end_date.isoformat()
     })
 
@@ -1049,6 +1059,14 @@ def auction_status(auction_id):
 @app.route('/api/auction/<int:auction_id>/state')
 def auction_state(auction_id):
     auction = Auction.query.get_or_404(auction_id)
+    now = datetime.utcnow()
+    if auction.end_date and now >= auction.end_date:
+        effective_status = 'ended'
+    elif auction.start_date and now < auction.start_date:
+        effective_status = 'upcoming'
+    else:
+        effective_status = 'active'
+
     bids = Bid.query.filter_by(auction_id=auction_id).order_by(Bid.amount.desc()).limit(10).all()
     highest = auction.highest_bidder
 
@@ -1056,12 +1074,12 @@ def auction_state(auction_id):
     highest_email = (highest.bidder_email or '').strip().lower() if highest else ''
     is_winner = bool(saved_email and highest and saved_email == highest_email)
 
-    winner_name = highest.bidder_name if (auction.status == 'ended' and is_winner and highest) else None
-    winner_amount = float(highest.amount) if (auction.status == 'ended' and is_winner and highest) else None
+    winner_name = highest.bidder_name if (effective_status == 'ended' and is_winner and highest) else None
+    winner_amount = float(highest.amount) if (effective_status == 'ended' and is_winner and highest) else None
 
     return jsonify({
         'auction_id': auction.id,
-        'status': auction.status,
+        'status': effective_status,
         'current_price': auction.current_price,
         'bid_count': len(auction.bids),
         'highest_bidder_name': highest.bidder_name if highest else None,
