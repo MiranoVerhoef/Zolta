@@ -15,7 +15,7 @@ from markupsafe import escape as html_escape
 
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION', '1.3.17')
+APP_VERSION = os.environ.get('APP_VERSION', '1.3.18')
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
 
 from queue import Queue, Empty
@@ -1199,8 +1199,17 @@ def admin_new_auction():
         # Parse dates
         start_date = datetime.fromisoformat(request.form.get('start_date'))
         end_date = datetime.fromisoformat(request.form.get('end_date'))
-        
-        # Create auction
+
+        # Guard: end must be after start (avoid immediate 'ended' at start time)
+        if end_date <= start_date:
+            end_date = start_date + timedelta(minutes=5)
+            flash('Einddatum was niet later dan startdatum; automatisch aangepast naar +5 minuten.', 'warning')
+
+        # Guard: end must be after start (avoid immediate 'ended' at start time)
+        if end_date <= start_date:
+            end_date = start_date + timedelta(minutes=5)
+            flash('Einddatum was niet later dan startdatum; automatisch aangepast naar +5 minuten.', 'warning')
+# Create auction
         auction = Auction(
             title=request.form.get('title'),
             description=request.form.get('description'),
