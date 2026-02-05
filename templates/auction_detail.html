@@ -15,7 +15,6 @@
                          alt="{{ auction.title }}" class="auction-main-image">
                     {% else %}
                     <div class="auction-main-image" style="display: flex; align-items: center; justify-content: center; font-size: 1rem; min-height: 300px; color: var(--text-secondary);">Geen afbeelding</div>
-                    {% endif %}
                 </div>
 
                 <div class="mt-2">
@@ -116,8 +115,7 @@
                 </div>
                 {% endif %}
 
-                {% if effective_status == 'active' %}
-                <div id="bid-form-container">
+                <div id="bid-form-container" data-initial-status="{{ effective_status }}">
                     <div class="bid-form">
                     <h3>{{ t('place_your_bid') }}</h3>
                     <div id="message-container"></div>

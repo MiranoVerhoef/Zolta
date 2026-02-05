@@ -409,7 +409,11 @@ function initPageTransitions(){
 
 
 function initLiveBidRefresh() {
-    const detail = document.querySelector('.auction-detail-grid[data-auction-id]');
+    
+  const _c = document.getElementById('bid-form-container');
+  const initialStatus = _c && _c.dataset ? _c.dataset.initialStatus : null;
+  if (initialStatus) setBidFormVisibility(initialStatus);
+const detail = document.querySelector('.auction-detail-grid[data-auction-id]');
     if (!detail) return;
     const auctionId = detail.dataset.auctionId;
 
@@ -601,6 +605,27 @@ function spawnConfetti(host) {
 
 function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s]));
+}
+
+
+function setBidFormVisibility(status) {
+  const container = document.getElementById('bid-form-container');
+  const form = document.getElementById('bid-form');
+  if (!container) return;
+
+  // Show form only when active
+  const isActive = status === 'active';
+  container.style.display = isActive ? '' : 'none';
+
+  // Enable/disable inputs defensively
+  if (form) {
+    const inputs = form.querySelectorAll('input, button, select, textarea');
+    inputs.forEach(el => {
+      // keep hidden inputs enabled
+      if (el.type === 'hidden') return;
+      el.disabled = !isActive;
+    });
+  }
 }
 
 
