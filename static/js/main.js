@@ -401,7 +401,7 @@ function initLiveBidRefresh() {
 
         applyAuctionStatusUI(data);
 
-        if (data.status === 'ended' && data.winner_name && !window.__zoltaWinnerShown) {
+        if (data.status === 'ended' && data.is_winner && data.winner_name && !window.__zoltaWinnerShown) {
             window.__zoltaWinnerShown = true;
             showWinnerOverlay(data.winner_name, data.winner_amount);
         }

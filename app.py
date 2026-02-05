@@ -14,7 +14,7 @@ from markupsafe import escape as html_escape
 
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION', '1.3.8')
+APP_VERSION = os.environ.get('APP_VERSION', '1.3.9')
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
 
 from queue import Queue, Empty
@@ -1051,6 +1051,14 @@ def auction_state(auction_id):
     auction = Auction.query.get_or_404(auction_id)
     bids = Bid.query.filter_by(auction_id=auction_id).order_by(Bid.amount.desc()).limit(10).all()
     highest = auction.highest_bidder
+
+    saved_email = (request.cookies.get('bidder_email') or '').strip().lower()
+    highest_email = (highest.bidder_email or '').strip().lower() if highest else ''
+    is_winner = bool(saved_email and highest and saved_email == highest_email)
+
+    winner_name = highest.bidder_name if (auction.status == 'ended' and is_winner and highest) else None
+    winner_amount = float(highest.amount) if (auction.status == 'ended' and is_winner and highest) else None
+
     return jsonify({
         'auction_id': auction.id,
         'status': auction.status,
@@ -1062,12 +1070,16 @@ def auction_state(auction_id):
         'start_date': auction.start_date.isoformat(),
         'end_date': auction.end_date.isoformat(),
         'notify_winner': bool(getattr(auction, 'notify_winner', False)),
+        'is_winner': is_winner,
+        'winner_name': winner_name,
+        'winner_amount': winner_amount,
         'bids': [{
             'name': b.bidder_name,
             'amount': float(b.amount),
             'created_at': b.created_at.isoformat()
         } for b in bids]
     })
+
 
 # Admin Routes
 @app.route('/admin')
