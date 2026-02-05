@@ -47,9 +47,9 @@
             </div>
 
             <div class="auction-info">
-                <span class="auction-status {{ auction.status }}" id="auction-status-pill" data-status="{{ auction.status }}">
-                    {% if auction.status == 'active' %}{{ t('live_now') }}
-                    {% elif auction.status == 'upcoming' %}{{ t('starting_soon') }}
+                <span class="auction-status {{ effective_status }}" id="auction-status-pill" data-status="{{ effective_status }}">
+                    {% if effective_status == 'active' %}{{ t('live_now') }}
+                    {% elif effective_status == 'upcoming' %}{{ t('starting_soon') }}
                     {% else %}{{ t('ended') }}
                     {% endif %}
                 </span>
@@ -58,7 +58,7 @@
 
                 <div class="price-display">
                     <div class="price-label" id="price-label">
-                        {% if auction.status == 'ended' %}{{ t('final_price') }}
+                        {% if effective_status == 'ended' %}{{ t('final_price') }}
                         {% elif auction.bids|length > 0 %}{{ t('current_bid') }}
                         {% else %}{{ t('starting_price') }}
                         {% endif %}
@@ -69,11 +69,11 @@
                     </div>
                 </div>
 
-                {% if auction.status == 'active' %}
+                {% if effective_status == 'active' %}
                 <div class="countdown" data-countdown="{{ auction.end_date.isoformat() }}">
                     Laden...
                 </div>
-                {% elif auction.status == 'upcoming' %}
+                {% elif effective_status == 'upcoming' %}
                 <div class="alert alert-info mt-2">
                     Veiling start: <strong>{{ auction.start_date.strftime('%d-%m-%Y %H:%M') }}</strong>
                 </div>
@@ -116,7 +116,7 @@
                 </div>
                 {% endif %}
 
-                {% if auction.status == 'active' %}
+                {% if effective_status == 'active' %}
                 <div id="bid-form-container">
                     <div class="bid-form">
                     <h3>{{ t('place_your_bid') }}</h3>
@@ -160,7 +160,7 @@
                 </div>
                 {% endif %}
 
-                <div id="ended-info" class="alert alert-info mt-2" {% if auction.status != 'ended' %}style="display:none;"{% endif %}>
+                <div id="ended-info" class="alert alert-info mt-2" {% if effective_status != 'ended' %}style="display:none;"{% endif %}>
                     <strong>Veiling {{ t('ended') }}</strong><br>
                     <span id="ended-winner-line">
                     {% if auction.highest_bidder %}
