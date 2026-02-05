@@ -14,7 +14,7 @@ from markupsafe import escape as html_escape
 
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION', '1.3.12')
+APP_VERSION = os.environ.get('APP_VERSION', '1.3.13')
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
 
 from queue import Queue, Empty
@@ -350,12 +350,21 @@ def get_setting(key, default=None):
 
 
 def compute_effective_status(auction, now=None):
-    """Compute status based on start/end timestamps (does not mutate DB model)."""
+    """Compute status based on start/end timestamps (does not mutate DB model).
+
+    NOTE: Auction start/end datetimes are stored as *naive local* timestamps. To make this
+    consistent regardless of container timezone, we compute 'now' in Europe/Amsterdam and
+    drop tzinfo before comparing.
+    """
     from datetime import datetime
+    from zoneinfo import ZoneInfo
+
     if now is None:
-        now = datetime.now()
+        now = datetime.now(ZoneInfo('Europe/Amsterdam')).replace(tzinfo=None)
+
     start = getattr(auction, 'start_date', None)
     end = getattr(auction, 'end_date', None)
+
     if start and now < start:
         return 'upcoming'
     if end and now >= end:

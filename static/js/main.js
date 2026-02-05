@@ -416,8 +416,10 @@ function initLiveBidRefresh() {
                 status: data.status,
                 current_price: data.current_price,
                 bid_count: data.bid_count,
-                winner_name: data.highest_bidder_name,
-                winner_amount: data.highest_bid_amount,
+                // Winner info (only filled when ended + you are the winner)
+                is_winner: !!data.is_winner,
+                winner_name: data.winner_name || data.highest_bidder_name,
+                winner_amount: (data.winner_amount != null) ? data.winner_amount : data.highest_bid_amount,
                 notify_winner: data.notify_winner,
                 bids: data.bids
             });

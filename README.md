@@ -1,6 +1,6 @@
 # Zolta
 
-**Version: 1.3.10**
+**Version: 1.3.13**
 
 A sleek, modern auction platform for internal equipment sales. Perfect for organizations looking to auction off surplus computers, monitors, and other equipment.
 
@@ -26,3 +26,7 @@ Email settings are configured via **Admin → Settings** (SMTP + notifications).
 ## Live bied-updates
 
 Zolta ververst biedingen met lichte polling (ongeveer elke 2 seconden). Hierdoor werkt het betrouwbaar achter vrijwel elke reverse proxy (geen websockets/SSE nodig).
+
+
+### Tijdzone (aanbevolen)
+Zet `TZ=Europe/Amsterdam` zodat start/eindtijden altijd kloppen.
