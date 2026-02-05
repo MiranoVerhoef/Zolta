@@ -170,28 +170,7 @@
                     {% endif %}
                     </span>
                 </div>
-                        </div>
 
-                        <div class="form-group">
-                            <label class="form-label" for="amount">{{ t('bid_amount') }}</label>
-                            {% set min_bid = auction.current_price + auction.min_bid_increment %}
-                            <input type="number" id="amount" name="amount" class="form-input"
-                                   min="{{ '%.2f'|format(min_bid) }}"
-                                   step="0.01"
-                                   value="{{ '%.2f'|format(min_bid) }}"
-                                   data-min-increment="{{ auction.min_bid_increment }}"
-                                   required>
-                            <span class="form-hint">Minimum bod: €{{ "%.2f"|format(min_bid) }}</span>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary btn-block">
-                            {{ t('place_bid') }}
-                        </button>
-                    </form>
-                </div>
-
-            </div>
-        </div>
     </div>
 
     <div class="winner-overlay" id="winner-overlay" aria-hidden="true">

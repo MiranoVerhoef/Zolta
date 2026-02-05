@@ -116,7 +116,28 @@ function initBidForms() {
                 body: JSON.stringify(formData)
             });
             
-            const data = await response.json();
+            const rawText = await response.text();
+            let data = null;
+            try {
+                data = rawText ? JSON.parse(rawText) : null;
+            } catch (e) {
+                data = null;
+            }
+
+            // If the server didn't return JSON but the request succeeded, assume success and refresh UI
+            if (!data && response.ok) {
+                showMessage('success', 'Bod geplaatst.');
+                refreshBidList(auctionId);
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+                return;
+            }
+
+            if (!data) {
+                showMessage('error', 'Er ging iets mis. Probeer het opnieuw.');
+                console.error('Unexpected response:', rawText);
+                return;
+            }
             
             if (data.success) {
                 showMessage('success', data.message);
