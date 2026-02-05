@@ -14,7 +14,7 @@ from markupsafe import escape as html_escape
 
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION', '1.3.11')
+APP_VERSION = os.environ.get('APP_VERSION', '1.3.12')
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
 
 from queue import Queue, Empty
@@ -353,7 +353,7 @@ def compute_effective_status(auction, now=None):
     """Compute status based on start/end timestamps (does not mutate DB model)."""
     from datetime import datetime
     if now is None:
-        now = datetime.utcnow()
+        now = datetime.now()
     start = getattr(auction, 'start_date', None)
     end = getattr(auction, 'end_date', None)
     if start and now < start:
@@ -779,15 +779,8 @@ def index():
 @app.route('/auction/<int:auction_id>')
 def auction_detail(auction_id):
     auction = Auction.query.get_or_404(auction_id)
-    now = datetime.utcnow()
-    if auction.end_date and now >= auction.end_date:
-        effective_status = 'ended'
-    elif auction.start_date and now < auction.start_date:
-        effective_status = 'upcoming'
-    else:
-        effective_status = 'active'
-    # Use computed status for UI rendering without persisting it
-    pass  # status is computed (read-only property)
+    effective_status = compute_effective_status(auction)
+
 
     bids = Bid.query.filter_by(auction_id=auction_id).order_by(Bid.amount.desc()).limit(10).all()
     
@@ -1075,13 +1068,8 @@ def auction_status(auction_id):
 @app.route('/api/auction/<int:auction_id>/state')
 def auction_state(auction_id):
     auction = Auction.query.get_or_404(auction_id)
-    now = datetime.utcnow()
-    if auction.end_date and now >= auction.end_date:
-        effective_status = 'ended'
-    elif auction.start_date and now < auction.start_date:
-        effective_status = 'upcoming'
-    else:
-        effective_status = 'active'
+    effective_status = compute_effective_status(auction)
+
 
     bids = Bid.query.filter_by(auction_id=auction_id).order_by(Bid.amount.desc()).limit(10).all()
     highest = auction.highest_bidder
