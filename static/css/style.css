@@ -1135,17 +1135,46 @@ body.page-fade-in.page-fade-in-active{opacity:1;transition:opacity 220ms ease;}
 /* Winner fullscreen overlay */
 .winner-overlay { display:none; position: fixed; inset:0; z-index: 6500; }
 .winner-overlay.show { display:block; }
-.winner-overlay-backdrop { position:absolute; inset:0; background: rgba(0,0,0,0.55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-.winner-overlay-card { position: relative; width: min(720px, 92vw); margin: 14vh auto 0 auto; background: var(--surface); border-radius: 28px; padding: 26px 22px; text-align:center; box-shadow: 0 24px 70px rgba(0,0,0,0.28); overflow:hidden; }
+.winner-overlay-backdrop { position:absolute; inset:0; z-index:0; background: rgba(0,0,0,0.55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.winner-overlay-card { position: relative; z-index:2; width: min(720px, 92vw); margin: 14vh auto 0 auto; background: var(--surface); border-radius: 28px; padding: 26px 22px; text-align:center; box-shadow: 0 24px 70px rgba(0,0,0,0.28); overflow:hidden; }
 .winner-overlay-title { letter-spacing: 0.12em; text-transform: uppercase; font-size: 12px; color: var(--muted); margin-bottom: 10px; }
 .winner-overlay-name { font-size: 44px; font-weight: 800; margin: 6px 0 4px 0; }
 .winner-overlay-amount { font-size: 22px; font-weight: 700; color: var(--primary); }
-.winner-overlay-confetti { position:absolute; inset:-40px; background-image: radial-gradient(circle at 20% 20%, rgba(255,200,0,0.55) 0 2px, transparent 3px),
-radial-gradient(circle at 80% 30%, rgba(0,160,255,0.55) 0 2px, transparent 3px),
-radial-gradient(circle at 40% 70%, rgba(255,0,120,0.45) 0 2px, transparent 3px);
-background-size: 200px 200px;
-opacity: 0.35;
-animation: confettiFloat 1.4s linear infinite;
-pointer-events:none;
+.winner-overlay-card > *:not(.winner-overlay-confetti) { position: relative; z-index: 2; }
+
+.winner-overlay-confetti { 
+    position:fixed;
+    inset:0; 
+    overflow:hidden;
+    pointer-events:none;
+    z-index: 1;
 }
-@keyframes confettiFloat { from { transform: translateY(0); } to { transform: translateY(30px); } }
+
+.winner-overlay-confetti.confetti-host::before {
+    content: "";
+    position:absolute;
+    inset:0;
+    background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.16) 0 40%, transparent 60%),
+                radial-gradient(circle at 70% 35%, rgba(255,255,255,0.14) 0 35%, transparent 60%);
+    opacity: 0.9;
+}
+
+.confetti-piece {
+    position:absolute;
+    top:-18vh;
+    border-radius: 4px;
+    opacity: 0.95;
+    filter: drop-shadow(0 10px 18px rgba(0,0,0,0.18));
+    animation-name: confettiFall;
+    animation-timing-function: cubic-bezier(.22,.61,.36,1);
+    animation-iteration-count: 1;
+    will-change: transform, top, left;
+}
+
+@keyframes confettiFall {
+    0%   { transform: translateX(0) translateY(0) rotate(0deg); }
+    100% { transform: translateX(var(--drift)) translateY(120vh) rotate(720deg); }
+}
+
+
+.auction-detail .auction-status.active { font-size: 1.05rem; padding: 0.5rem 1.15rem; }

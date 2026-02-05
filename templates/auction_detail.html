@@ -47,8 +47,11 @@
             </div>
 
             <div class="auction-info">
-                <span class="auction-status {{ auction.status }}">
-                    {% if auction.status == 'active' %}{{ t('live_now') }}
+                <span class="auction-status {{ auction.status }}" id="auction-status-pill" data-status="{{ auction.status }}">
+                    {% set _is_active = (auction.status == 'active') %}
+{% set _is_ended = (auction.status == 'ended') %}
+<div id="bid-form-container" style="{% if not _is_active %}display:none;{% endif %}">
+{{ t('live_now') }}
                     {% elif auction.status == 'upcoming' %}{{ t('starting_soon') }}
                     {% else %}{{ t('ended') }}
                     {% endif %}
@@ -57,7 +60,7 @@
                 <h1 class="auction-title mt-1">{{ auction.title }}</h1>
 
                 <div class="price-display">
-                    <div class="price-label">
+                    <div class="price-label" id="price-label">
                         {% if auction.status == 'ended' %}{{ t('final_price') }}
                         {% elif auction.bids|length > 0 %}{{ t('current_bid') }}
                         {% else %}{{ t('starting_price') }}
@@ -156,14 +159,17 @@
                         </button>
                     </form>
                 </div>
-                {% elif auction.status == 'ended' %}
-                <div class="alert alert-info mt-2">
-                    <strong>Veiling {{ t('ended') }}</strong><br>
-                    {% if auction.highest_bidder %}
-                    Winnaar: {{ auction.highest_bidder.bidder_name }} met €{{ "%.2f"|format(auction.highest_bidder.amount) }}
-                    {% else %}
-                    Er zijn geen biedingen geplaatst.
-                    {% endif %}
+</div>
+<div id="ended-info" class="alert alert-info mt-2" style="{% if not _is_ended %}display:none;{% endif %}">
+    <strong>Veiling {{ t('ended') }}</strong><br>
+    <span id="ended-winner-line">
+    {% if auction.highest_bidder %}
+    Winnaar: {{ auction.highest_bidder.bidder_name }} met €{{ "%.2f"|format(auction.highest_bidder.amount) }}
+    {% else %}
+    Er zijn geen biedingen geplaatst.
+    {% endif %}
+    </span>
+</div>
                 </div>
                 {% endif %}
             </div>

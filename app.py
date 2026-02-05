@@ -10,10 +10,11 @@ import os
 import json
 from queue import Queue, Empty
 from threading import Lock
+from markupsafe import escape as html_escape
 
 
 # Build/version string used for cache-busting static assets
-APP_VERSION = os.environ.get('APP_VERSION', '1.3.5')
+APP_VERSION = os.environ.get('APP_VERSION', '1.3.7')
 CONFIG_PATH = os.environ.get('CONFIG_PATH', '/app/instance/config.json')
 
 from queue import Queue, Empty
@@ -223,6 +224,7 @@ class Auction(db.Model):
     whitelisted_domains = db.Column(db.Text, nullable=True)  # Comma-separated
     show_allowed_domains = db.Column(db.Boolean, default=True)  # Show domains to users
     language = db.Column(db.String(2), default='nl')  # Auction language for emails/confirmation
+    winner_instructions = db.Column(db.Text, nullable=True)  # Optional winner email instructions
     # Notification options
     notify_winner = db.Column(db.Boolean, default=True)
     ending_soon_notified_at = db.Column(db.DateTime, nullable=True)
@@ -374,7 +376,7 @@ TRANSLATIONS = {
         'live_now': 'Nu live',
         'starting_soon': 'Start binnenkort',
         'ended': 'Afgelopen',
-        'final_price': 'Eindprijs',
+        'final_price': 'Winnend bod',
         'current_bid': 'Huidig bod',
         'starting_price': 'Startprijs',
         'place_your_bid': 'Plaats je bod',
@@ -483,7 +485,9 @@ def base_url_from_external_url(external_url: str) -> str:
 def build_email_html(title: str, heading: str, intro_html: str, *, cta_text: str | None = None, cta_url: str | None = None, footer_html: str | None = None, base_url: str | None = None) -> str:
     """Lightweight, email-client friendly HTML shell (table-based)."""
     base_url = (base_url or '').rstrip('/')
-    logo_url = f"{base_url}/static/img/zolta-icon.png" if base_url else ''
+    if not base_url and cta_url:
+        base_url = base_url_from_external_url(cta_url).rstrip('/')
+    logo_url = f"{base_url}/static/img/zolta-email.png" if base_url else ''
 
     # inline styles for compatibility
     btn = ''
@@ -494,7 +498,7 @@ def build_email_html(title: str, heading: str, intro_html: str, *, cta_text: str
 
     logo_block = ''
     if logo_url:
-        logo_block = f'''        <tr>          <td style="padding: 10px 0 4px 0;">            <img src="{logo_url}" width="48" height="48" alt="Zolta" style="display:block;border:0;outline:none;text-decoration:none;border-radius:10px;"/>          </td>        </tr>'''
+        logo_block = f'''        <tr>          <td style="padding: 10px 0 4px 0;">            <img src="{logo_url}" width="32" height="32" alt="" style="display:block;border:0;outline:none;text-decoration:none;border-radius:10px;"/>          </td>        </tr>'''
 
     return f'''<!doctype html>
 <html>
@@ -639,7 +643,7 @@ Huidig bod: €{current:.2f}
             <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;border-collapse:collapse;margin-top:12px;\">
               <tr>
                 <td style=\"padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;\">
-                  <div style=\"font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;\">Eindprijs</div>
+                  <div style=\"font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;\">Winnend bod</div>
                   <div style=\"font-size:20px;font-weight:800;color:#111827;\">€{final_price:.2f}</div>
                   <div style=\"margin-top:6px;font-size:12px;color:#6b7280;\">Eindtijd: <strong>{end_str}</strong></div>
                 </td>
@@ -662,7 +666,7 @@ Huidig bod: €{current:.2f}
 
 Veiling: {auction.title}
 Eindtijd: {end_str}
-Eindprijs: €{final_price:.2f}
+Winnend bod: €{final_price:.2f}
 {winner_line_text}
 {('Bekijk veiling: ' + link) if link else ''}
 """
@@ -674,6 +678,8 @@ Eindprijs: €{final_price:.2f}
         # Winner email (separate)
         if highest and auction.notify_winner and highest.bidder_email:
             w_subject = t_for_lang('nl', 'winner_subject').format(title=auction.title)
+            instruction_text = (auction.winner_instructions or 'Neem contact op met de veilinghouder om afhalen/betalen af te stemmen.').strip()
+            instruction_html = html_escape(instruction_text)
             w_intro = f"""
                 <p>Hallo {highest.bidder_name},</p>
                 <p><strong>Gefeliciteerd!</strong> Je hebt de veiling <strong>{auction.title}</strong> gewonnen.</p>
@@ -685,7 +691,7 @@ Eindprijs: €{final_price:.2f}
                     </td>
                   </tr>
                 </table>
-                <p style=\"margin-top:12px;\">Neem contact op met de veilinghouder om afhalen/betalen af te stemmen.</p>
+                <p style=\"margin-top:12px;\">{instruction_html}</p>
             """
 
             w_html = build_email_html(
@@ -702,7 +708,7 @@ Eindprijs: €{final_price:.2f}
 Veiling: {auction.title}
 Winnend bod: €{highest.amount:.2f}
 
-Neem contact op met de veilinghouder om afhalen/betalen af te stemmen.
+{instruction_text}
 {('Bekijk veiling: ' + link) if link else ''}
 """
             send_email(highest.bidder_email, w_subject, w_html, w_text)
@@ -850,7 +856,7 @@ def place_bid(auction_id):
                 <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-top:12px;">
                   <tr>
                     <td style="padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#f9fafb;">
-                      <div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;">Bodbedrag</div>
+                      <div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;">Bedrag</div>
                       <div style="font-size:20px;font-weight:800;color:#111827;">€{amount:.2f}</div>
                     </td>
                   </tr>
@@ -870,7 +876,7 @@ def place_bid(auction_id):
             text_body = f"""{t_for_lang(lang, 'confirm_bid_heading')}
 
 Veiling: {auction.title}
-Bodbedrag: €{amount:.2f}
+Bedrag: €{amount:.2f}
 
 {t_for_lang(lang, 'confirm_bid_cta')}: {verify_url}
 
@@ -1125,6 +1131,7 @@ def admin_new_auction():
             whitelisted_domains=request.form.get('whitelisted_domains', '').strip() or None,
             show_allowed_domains=request.form.get('show_allowed_domains') == 'on',
             notify_winner=request.form.get('notify_winner') == 'on',
+            winner_instructions=request.form.get('winner_instructions', '').strip() or None,
             language='nl',
             is_active=True
         )
@@ -1312,6 +1319,7 @@ def ensure_db_schema():
         add_col("ending_soon_notified_at", "ending_soon_notified_at DATETIME")
         add_col("ended_notified_at", "ended_notified_at DATETIME")
         add_col("language", "language VARCHAR(2) DEFAULT 'nl'")
+        add_col("winner_instructions", "winner_instructions TEXT")
 
 def init_db():
     with app.app_context():

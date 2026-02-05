@@ -52,6 +52,12 @@ function updateCountdown(element, endDate) {
     
     if (diff <= 0) {
         element.innerHTML = '<span class="countdown-ended">Veiling afgelopen</span>';
+        if (!element.__endedNotified) {
+            element.__endedNotified = true;
+            if (typeof window.__zoltaForceRefresh === 'function') {
+                window.__zoltaForceRefresh();
+            }
+        }
         return;
     }
     
@@ -393,7 +399,9 @@ function initLiveBidRefresh() {
             }
         }
 
-        if (data.status === 'ended' && data.winner_name && data.notify_winner && !window.__zoltaWinnerShown) {
+        applyAuctionStatusUI(data);
+
+        if (data.status === 'ended' && data.winner_name && !window.__zoltaWinnerShown) {
             window.__zoltaWinnerShown = true;
             showWinnerOverlay(data.winner_name, data.winner_amount);
         }
@@ -417,21 +425,130 @@ function initLiveBidRefresh() {
     };
 
     // Always start immediately + keep polling (proxy-safe)
+    window.__zoltaForceRefresh = fetchState;
     fetchState();
     setInterval(fetchState, 2000);
 }
 
+
+function applyAuctionStatusUI(data) {
+    const statusEl = document.getElementById('auction-status-pill') || document.querySelector('.auction-info .auction-status');
+    const bidFormWrap = document.getElementById('bid-form-container') || document.querySelector('.bid-form');
+    const endedInfo = document.getElementById('ended-info');
+    const priceLabel = document.getElementById('price-label') || document.querySelector('.price-label');
+    const countdown = document.querySelector('.countdown[data-countdown]');
+
+    if (!data || !data.status) return;
+
+    // Update status pill text + classes
+    if (statusEl) {
+        statusEl.classList.remove('active', 'upcoming', 'ended', 'inactive');
+        statusEl.classList.add(data.status);
+        statusEl.dataset.status = data.status;
+
+        if (data.status === 'active') statusEl.textContent = 'Nu live';
+        else if (data.status === 'upcoming') statusEl.textContent = 'Start binnenkort';
+        else if (data.status === 'ended') statusEl.textContent = 'Afgelopen';
+        else statusEl.textContent = 'Inactief';
+    }
+
+    if (data.status === 'ended') {
+        // Hide bid form
+        if (bidFormWrap) bidFormWrap.style.display = 'none';
+
+        // Show ended info (if present)
+        if (endedInfo) {
+            endedInfo.style.display = '';
+            const line = endedInfo.querySelector('#ended-winner-line');
+            if (line) {
+                if (data.winner_name && data.winner_amount != null) {
+                    line.textContent = `Winnaar: ${data.winner_name} met €${Number(data.winner_amount).toFixed(2)}`;
+                } else {
+                    line.textContent = 'Er zijn geen biedingen geplaatst.';
+                }
+            }
+        }
+
+        // Update label
+        if (priceLabel) {
+            priceLabel.textContent = 'Winnend bod';
+        }
+
+        // Countdown label
+        if (countdown) {
+            countdown.innerHTML = '<span class="countdown-ended">Veiling afgelopen</span>';
+        }
+    } else if (data.status === 'active') {
+        // Show bid form
+        if (bidFormWrap) bidFormWrap.style.display = '';
+        if (endedInfo) endedInfo.style.display = 'none';
+        if (priceLabel) {
+            // keep current server label if present, otherwise default
+            if (!priceLabel.textContent || priceLabel.textContent.trim().length === 0) {
+                priceLabel.textContent = 'Huidig bod';
+            }
+        }
+    }
+}
+
+
 function showWinnerOverlay(name, amount) {
     const overlay = document.getElementById('winner-overlay');
     if (!overlay) return;
+
     const nm = overlay.querySelector('[data-winner-name]');
     const am = overlay.querySelector('[data-winner-amount]');
     if (nm) nm.textContent = name || '';
     if (am) am.textContent = (amount != null) ? `€${Number(amount).toFixed(2)}` : '';
+
     overlay.classList.add('show');
-    setTimeout(() => overlay.classList.remove('show'), 5000);
+    overlay.setAttribute('aria-hidden', 'false');
+
+    // Big, visible confetti
+    const confettiHost = overlay.querySelector('.winner-overlay-confetti');
+    if (confettiHost) spawnConfetti(confettiHost);
+
+    setTimeout(() => {
+        overlay.classList.remove('show');
+        overlay.setAttribute('aria-hidden', 'true');
+    }, 5000);
 }
 
+
+
+
+function spawnConfetti(host) {
+    // Clear existing pieces
+    host.innerHTML = '';
+    host.classList.add('confetti-host');
+
+    const colors = ['#ff4d6d', '#ffd166', '#06d6a0', '#4dabf7', '#b197fc', '#f06595', '#ffa94d', '#69db7c'];
+    const pieces = 140;
+
+    const rand = (min, max) => Math.random() * (max - min) + min;
+
+    for (let i = 0; i < pieces; i++) {
+        const p = document.createElement('i');
+        p.className = 'confetti-piece';
+        const left = rand(-10, 110);
+        const delay = rand(0, 0.9);
+        const dur = rand(1.8, 3.2);
+        const size = rand(8, 16);
+        const rot = rand(0, 360);
+        const drift = rand(-30, 30);
+
+        p.style.left = left + 'vw';
+        p.style.animationDelay = delay + 's';
+        p.style.animationDuration = dur + 's';
+        p.style.width = size + 'px';
+        p.style.height = (size * 1.4) + 'px';
+        p.style.transform = `rotate(${rot}deg)`;
+        p.style.background = colors[i % colors.length];
+        p.style.setProperty('--drift', drift + 'vw');
+
+        host.appendChild(p);
+    }
+}
 
 function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s]));

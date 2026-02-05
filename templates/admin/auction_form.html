@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}{% if auction %}Veiling bewerken{% else %}Nieuwe veiling{% endif %} - Admin{% endblock %}
+{% block title %}
+
+
+                
+
+
+            {% if auction %}Veiling bewerken{% else %}Nieuwe veiling{% endif %} - Admin{% endblock %}
 
 {% block precontent %}{% endblock %}
 
@@ -151,7 +157,16 @@
                     <span class="form-help">Als uitgeschakeld krijgen bieders nog steeds een e-mail dat de veiling is afgelopen, maar de winnaar krijgt geen aparte winnaarmail.</span>
                 </div>
 
-                {% if auction %}
+
+                
+            <div class="form-group">
+                                <label class="form-label" for="winner_instructions">Instructie voor winnaarmail (optioneel)</label>
+                                <textarea id="winner_instructions" name="winner_instructions" class="form-input form-textarea"
+                                          placeholder="Bijv. Betalen via Tikkie, afhalen op afspraak, contact via info@jouwdomein.nl">{{ auction.winner_instructions if auction and auction.winner_instructions else '' }}</textarea>
+                                <span class="form-hint">Als leeg, gebruiken we standaard: “Neem contact op met de veilinghouder om afhalen/betalen af te stemmen.”</span>
+                            </div>
+
+{% if auction %}
                 <div class="form-group">
                     <label class="form-checkbox">
                         <input type="checkbox" name="is_active"
